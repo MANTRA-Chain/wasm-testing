@@ -1,4 +1,3 @@
-use cosmwasm_std::Addr;
 use cw_storage_plus::Item;
 
-pub const ADMINS: Item<Vec<Addr>> = Item::new("admins");
+pub const COUNT: Item<u64> = Item::new("count");

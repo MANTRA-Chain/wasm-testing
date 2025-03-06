@@ -28,3 +28,4 @@ dist-ssr
 
 # Contract
 contract/target
+contract/artifacts

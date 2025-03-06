@@ -1,23 +1,34 @@
-use cosmwasm_std::Addr;
-use serde::{Deserialize, Serialize};
+use cosmwasm_schema::{cw_serde, QueryResponses};
+use cw_ownable::{cw_ownable_execute, cw_ownable_query};
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
+#[cw_serde]
 pub struct InstantiateMsg {
-    pub admins: Vec<String>,
+    pub count: Option<u64>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct GreetResp {
     pub message: String,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub struct AdminsListResp  {
-    pub admins: Vec<Addr>,
+#[cw_ownable_query]
+#[cw_serde]
+#[derive(QueryResponses)]
+pub enum QueryMsg {
+    #[returns(CountResponse)]
+    GetCount {},
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
-pub enum QueryMsg {
-    Greet {},
-    AdminsList {},
+#[cw_ownable_execute]
+#[cw_serde]
+pub enum ExecuteMsg {
+    Increment {},
+    Reset { count: u64 },
 }
+
+#[cw_serde]
+pub struct CountResponse {
+    pub count: u64,
+}
+
+#[cw_serde]
+pub struct MigrateMsg {}
