@@ -1,0 +1,22 @@
+{
+	"name": "MANTRA React",
+	"image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+	"customizations": {
+		"vscode": {
+			"settings": {},
+			"extensions": [
+				"esbenp.prettier-vscode",
+				"dbaeumer.vscode-eslint"
+			]
+		}
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {}
+	},
+	// Placeholders for extensions, features, and customizations
+	// "features": {},
+	// "forwardPorts": [],
+	"postCreateCommand": "corepack enable && corepack prepare yarn@1.22.22 --activate && yarn install --non-interactive"
+	// "customizations": {},
+	// "remoteUser": "root"
+}
