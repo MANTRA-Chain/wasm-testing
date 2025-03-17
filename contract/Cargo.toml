@@ -1,31 +1,38 @@
 [package]
-edition = "2021"
-name    = "dapp-template"
-version = "0.1.0"
+authors       = ["MANTRA Engineering Team <tech@mantrachain.io>"]
+description   = "Dapp template to help developers kickstart a project"
+documentation = "<link-to-documentation>"
+edition       = "2021"
+homepage      = "<link-to-homepage>"
+license       = ""
+name          = "dapp-template"
+publish       = false
+repository    = "<repo-link>"
+version       = "0.1.0"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-cosmwasm-std = { version = "2.2.0", features = [
+cosmwasm-std = { version = "2.2.2", features = [
   # "cosmwasm_1_4",
   # Enable this if you only deploy to chains that have CosmWasm 2.0 or higher
   # "cosmwasm_2_0",
   # Or this if you only deploy to chains that have CosmWasm 2.1 or higher
-  "cosmwasm_2_1",
+  "cosmwasm_2_2",
 ] }
 
-cosmwasm-schema         = "2.1.3"
+cosmwasm-schema         = { version = "2.2.2" }
 cw-migrate-error-derive = { version = "0.1.0" }
 cw-ownable              = { version = "2.1.0" }
-cw-storage-plus         = "2.0.0"
+cw-storage-plus         = { version = "2.0.0" }
 cw-utils                = { version = "2.0.0" }
-cw2                     = "2.0.0"
-mantra-utils            = { version = "1.0.0" }
-schemars                = "0.8.21"
-semver                  = { version = "1.0.23" }
-serde                   = { version = "1.0.208", default-features = false, features = ["derive"] }
+cw2                     = { version = "2.0.0" }
+mantra-utils            = { version = "1.1.1" }
+schemars                = { version = "0.8.22" }
+semver                  = { version = "1.0.26" }
+serde                   = { version = "1.0.218", default-features = false, features = ["derive"] }
 thiserror               = { version = "2.0.12" }
 
 [dev-dependencies]
-cw-multi-test = "2.0.0"
+cw-multi-test = { version = "2.3.2" }
