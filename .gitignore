@@ -27,5 +27,5 @@ dist-ssr
 *storybook.log
 
 # Contract
-contract/target
-contract/artifacts
+contracts/target
+contracts/artifacts

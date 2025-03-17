@@ -1,2 +1,2 @@
-#!/bin/bash
-(cd contract && cargo run --bin schema)
+#!/usr/bin/env bash
+ cd ../contracts && just schemas

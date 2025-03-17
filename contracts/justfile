@@ -1,6 +1,6 @@
 # Prints the list of recipes.
 default:
-    @just --list
+  @just --list
 
 # Builds the whole project.
 build:
@@ -50,7 +50,7 @@ watch:
   cargo watch -x check
 
 # Watches tests with the a feature flag if provided.
-watch-test FEATURE='':
+watch-test:
   cargo watch -x "nextest run"
 
 # Compiles and optimizes the contracts.
