@@ -4,6 +4,7 @@ resolver = "2"
 members = ["dapp-template", "xtask"]
 
 [workspace.package]
+rust-version  = "1.85.0"
 authors       = ["MANTRA Engineering Team <tech@mantrachain.io>"]
 documentation = "<link-to-documentation>"
 edition       = "2024"
@@ -30,7 +31,6 @@ thiserror               = { version = "2.0.12" }
 
 # contracts
 dapp-template = { path = "dapp-template" }
-
 
 [profile.release]
 codegen-units    = 1
