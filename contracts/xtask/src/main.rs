@@ -24,7 +24,7 @@ pub mod tasks {
             .to_path_buf()
     }
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Debug)]
     struct CargoPackage {
         name: String,
         version: String,
@@ -51,9 +51,7 @@ pub mod tasks {
             };
         }
 
-        let mut schemas = HashMap::from([
-            generate_schema!("dapp-template", dapp_template),
-        ]);
+        let mut schemas = HashMap::from([generate_schema!("dapp-template", dapp_template)]);
 
         let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
         let metadata = Command::new(cargo)
@@ -68,7 +66,8 @@ pub mod tasks {
         let contracts = metadata
             .packages
             .into_iter()
-            .filter(|member| member.manifest_path.contains("contracts"));
+            .filter(|member| member.manifest_path.contains("contracts"))
+            .filter(|member| member.name != "xtask");
 
         for contract in contracts {
             let contract_path = Path::new(&contract.manifest_path)

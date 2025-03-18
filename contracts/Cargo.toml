@@ -4,7 +4,6 @@ resolver = "2"
 members = ["dapp-template", "xtask"]
 
 [workspace.package]
-rust-version  = "1.85.0"
 authors       = ["MANTRA Engineering Team <tech@mantrachain.io>"]
 documentation = "<link-to-documentation>"
 edition       = "2024"
@@ -12,6 +11,7 @@ homepage      = "https://mantra.zone"
 license       = "MIT"
 publish       = false
 repository    = "https://github.com/MANTRA-Chain/mantra-dex"
+rust-version  = "1.85.0"
 
 [workspace.dependencies]
 cosmwasm-schema         = { version = "2.2.2" }
