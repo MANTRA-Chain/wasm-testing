@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
 
-members = ["dapp-template", "xtask"]
+members = ["contracts/dapp-template", "xtask"]
 
 [workspace.package]
 authors       = ["MANTRA Engineering Team <tech@mantrachain.io>"]
 documentation = "<link-to-documentation>"
-edition       = "2024"
+edition       = "2021"
 homepage      = "https://mantra.zone"
 license       = "MIT"
 publish       = false
@@ -30,7 +30,7 @@ serde_json              = { version = "1.0.140" }
 thiserror               = { version = "2.0.12" }
 
 # contracts
-dapp-template = { path = "dapp-template" }
+dapp-template = { path = "contracts/dapp-template" }
 
 [profile.release]
 codegen-units    = 1

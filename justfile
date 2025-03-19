@@ -49,7 +49,7 @@ refresh:
 watch:
   cargo watch -x check
 
-# Watches tests with the a feature flag if provided.
+# Watches tests.
 watch-test:
   cargo watch -x "nextest run"
 
