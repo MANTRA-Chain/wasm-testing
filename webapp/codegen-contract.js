@@ -5,7 +5,7 @@ codegen
     contracts: [
       {
         name: 'dapp-template',
-        dir: 'contracts/dapp-template/schema',
+        dir: '../contracts/dapp-template/schema',
       },
     ],
     outPath: 'src/__generated__/contracts',
