@@ -9,13 +9,17 @@ fi
 
 echo -e "\033[1mContracts:\033[0m"
 for artifact in artifacts/*.wasm; do
-	artifact="${artifact%-*}"
-	artifact=$(echo $artifact | sed 's/_/-/g')
-	contract_path=$(find "$project_root_path" -iname $(cut -d . -f 1 <<<$(basename $artifact)) -type d)
-	version=$(cat ''"$contract_path"'/Cargo.toml' | awk -F= '/^version/ { print $2 }')
-	version="${version//\"/}"
+	artifact_base=$(basename "$artifact" .wasm)
+	artifact_base=$(echo "$artifact_base" | sed 's/_/-/g')
+	contract_path=$(find "$project_root_path/contracts" -type d -name "$artifact_base" -exec sh -c 'for dir; do [ -f "$dir/Cargo.toml" ] && echo "$dir"; done' sh {} +)
 
-	printf "%-20s %s\n" "$(basename $artifact)" ": $version"
+	if [ -z "$contract_path" ]; then
+		printf "%-20s %s\n" "$artifact_base" ": Not found"
+		continue
+	fi
+
+	version=$(grep '^version' "$contract_path/Cargo.toml" | head -n 1 | awk -F= '{print $2}' | tr -d '"')
+	printf "%-20s %s\n" "$artifact_base" ": $version"
 done
 
 echo -e "\n\033[1mPackages:\033[0m"

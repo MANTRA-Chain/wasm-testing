@@ -66,8 +66,7 @@ pub mod tasks {
         let contracts = metadata
             .packages
             .into_iter()
-            .filter(|member| member.manifest_path.contains("contracts"))
-            .filter(|member| member.name != "xtask");
+            .filter(|member| member.manifest_path.contains("contracts"));
 
         for contract in contracts {
             let contract_path = Path::new(&contract.manifest_path)

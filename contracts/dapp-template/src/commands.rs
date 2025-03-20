@@ -1,6 +1,6 @@
 use cosmwasm_std::{DepsMut, Response};
 
-use crate::{ContractError, state::COUNT};
+use crate::{state::COUNT, ContractError};
 
 /// Increments the counter by 1.
 pub(crate) fn try_increment(deps: DepsMut) -> Result<Response, ContractError> {
