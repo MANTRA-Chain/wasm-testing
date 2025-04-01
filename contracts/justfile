@@ -1,3 +1,8 @@
+# Justfile
+# Make sure you have `just` installed: https://github.com/casey/just
+
+set dotenv-load
+
 # Prints the list of recipes.
 default:
   @just --list
@@ -65,3 +70,13 @@ get-artifacts-versions:
 get-artifacts-size:
   scripts/check_artifacts_size.sh
 
+# Stores artifacts on chain.
+store ARTIFACT='':
+  @scripts/store_artifact.sh {{ARTIFACT}}
+
+# Instantiates contracts.
+instantiate code_id instantiate_msg label *args:
+  @scripts/instantiate_contract.sh \
+    -c {{code_id}} \
+    -i '{{instantiate_msg}}' \
+    -l {{label}} {{args}}
