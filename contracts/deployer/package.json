@@ -1,0 +1,17 @@
+{
+  "name": "deployer",
+  "private": true,
+  "version": "0.0.0",
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@cosmjs/cosmwasm-stargate": "^0.33.1",
+    "@cosmjs/proto-signing": "^0.33.1",
+    "@cosmjs/stargate": "^0.33.1",
+    "dotenv": "^16.4.7"
+  },
+  "scripts": {
+    "deploy": "npx tsx deploy.ts"
+  }
+}
