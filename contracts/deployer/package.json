@@ -9,6 +9,7 @@
     "@cosmjs/cosmwasm-stargate": "^0.33.1",
     "@cosmjs/proto-signing": "^0.33.1",
     "@cosmjs/stargate": "^0.33.1",
+    "dayjs": "^1.11.13",
     "dotenv": "^16.4.7"
   },
   "scripts": {

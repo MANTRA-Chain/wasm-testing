@@ -3,6 +3,10 @@ import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { GasPrice } from "@cosmjs/stargate";
 import dotenv from "dotenv";
 import fs from "fs";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+
+dayjs.extend(utc)
 
 dotenv.config();
 
@@ -110,7 +114,9 @@ async function deploy() {
       fs.mkdirSync(deploymentDir, { recursive: true });
     }
     // save deployment info to file
-    const deploymentFilePath = `deployment/${network}/${deploymentName}.json`;
+    // time string in YYYY_MM_DD_HH_MM_SS format using dayjs, in UTC time
+    const timeString = dayjs.utc().format("YYYY_MM_DD_HH_mm_ss");
+    const deploymentFilePath = `deployment/${network}/${deploymentName}_${timeString}.json`;
     fs.writeFileSync(deploymentFilePath, JSON.stringify(deploymentInfo, null, 2));
     console.log(`Deployment info saved to ${deploymentFilePath}`);
   }
