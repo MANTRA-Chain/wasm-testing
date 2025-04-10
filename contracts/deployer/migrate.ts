@@ -6,6 +6,7 @@ import fs from "fs";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { NetworkConfig } from "./network";
+import { getChecksum, getCodeIdFromChecksum } from "./utils";
 
 dayjs.extend(utc)
 
@@ -61,6 +62,7 @@ async function migrate() {
     network,
     contractAddress,
     contractWasmPath,
+    checksumsPath,
     migrateMsg,
     memo,
     saveMigration,
@@ -69,14 +71,24 @@ async function migrate() {
   console.log("Connected to blockchain");
 
   // Step 3: Upload contract
-  const wasmCode = fs.readFileSync(contractWasmPath);
-  const uploadReceipt = await client.upload(
-    account.address,
-    wasmCode,
-    "auto",
- );
-  const codeId = uploadReceipt.codeId;
-  console.log(`Contract uploaded with Code ID: ${codeId}`);
+  const checksum = getChecksum(contractWasmPath, checksumsPath);
+  const codeId = await (async () => {
+    const existingCodeId = getCodeIdFromChecksum(migrationConfig);
+    if (existingCodeId) {
+      console.log(`Existing Code ID found: ${existingCodeId} for checksum: ${checksum}`);
+      return existingCodeId;
+    }
+
+    const wasmCode = fs.readFileSync(contractWasmPath);
+    const uploadReceipt = await client.upload(
+      account.address,
+      wasmCode,
+      "auto",
+    );
+    const codeId = uploadReceipt.codeId;
+    console.log(`Contract uploaded with Code ID: ${codeId}`);
+    return codeId;
+  })();
 
   // Step 4: Instantiate contract
   const migrateReceipt = await client.migrate(
@@ -102,6 +114,7 @@ async function migrate() {
       rpcEndpoint: networkConfig.rpcEndpoint,
       contractAddress,
       codeId,
+      checksum,
       migrateMsg,
       transactionHash,
       transactionUrl,

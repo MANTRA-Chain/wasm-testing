@@ -13,7 +13,7 @@ export const deploymentConfig: DeploymentConfig = {
 export const migrationConfig: MigrationConfig = {
   "name": "dapp_template",
   "network": "dukong",
-  "contractAddress": "",
+  "contractAddress": "mantra15wev5zt4d733d2yskl55vh4a4gutalqdud6h2tygdqtxqh7z87pshu8nxq",
   "contractWasmPath": "../artifacts/dapp_template.wasm",
   "checksumsPath": "../artifacts/checksums.txt",
   "migrateMsg": {},

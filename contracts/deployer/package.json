@@ -13,6 +13,7 @@
     "dotenv": "^16.4.7"
   },
   "scripts": {
-    "deploy": "npx tsx deploy.ts"
+    "deploy": "npx tsx deploy.ts",
+    "migrate": "npx tsx migrate.ts"
   }
 }

@@ -22,7 +22,7 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     cw_ownable::initialize_owner(deps.storage, deps.api, Some(info.sender.as_str()))?;
 
-    let initial_count = msg.count.unwrap_or(0);
+    let initial_count = msg.count.unwrap_or(1);
     COUNT.save(deps.storage, &initial_count)?;
 
     Ok(Response::default().add_attributes(vec![

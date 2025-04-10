@@ -1,0 +1,13 @@
+{
+  "deployer": "mantra1up2fwj3haw43aqyrtu50523e07ypt67flpuuxg",
+  "network": "dukong",
+  "rpcEndpoint": "https://rpc.dukong.mantrachain.io",
+  "codeId": 697,
+  "checksum": "385b0683115acf219cacad953769dccb600c3ec437ce7744cb2897640c32b812",
+  "contractAddress": "mantra1xtyljd7ephw7t72f4xvasgjvntye2dg0qqvknpkag3dr8m5fg3nq9hlntm",
+  "initMsg": {
+    "count": 8
+  },
+  "transactionHash": "E39EDFB8F77F76F0A27B96B3FDCCE9E221EF1707F81AC0D30CAFDF3684A9FC16",
+  "transactionUrl": "https://www.mintscan.io/mantra-testnet/tx/E39EDFB8F77F76F0A27B96B3FDCCE9E221EF1707F81AC0D30CAFDF3684A9FC16"
+}
