@@ -13,7 +13,7 @@ dotenv.config();
 
 const mnemonic = process.env.MNEMONIC; // Replace with your mnemonic
 
-async function deploy() {
+async function migrate() {
   if (!mnemonic) {
     console.error("env.MNEMONIC is required");
     return;
@@ -28,12 +28,12 @@ async function deploy() {
   }
 
   // Step 0: Read config file
-  const { deploymentConfig }: ConfigImport = await import(configPath);
-  if (!deploymentConfig) {
-    console.error("deploymentConfig is required");
+  const { migrationConfig }: ConfigImport = await import(configPath);
+  if (!migrationConfig) {
+    console.error("migrationConfig is required");
     return;
   }
-  const networkConfig = NetworkConfig[deploymentConfig.network];
+  const networkConfig = NetworkConfig[migrationConfig.network];
   const {
     rpcEndpoint,
     mintScanUrl
@@ -45,7 +45,7 @@ async function deploy() {
   });
   const [account] = await wallet.getAccounts();
 
-  console.log(`Deployment Config: ${JSON.stringify(deploymentConfig, null, 2)}`);
+  console.log(`Migration Config: ${JSON.stringify(migrationConfig, null, 2)}`);
   console.log(`Network Config: ${JSON.stringify(networkConfig, null, 2)}`);
   console.log(`Deployer: ${account.address}`);
 
@@ -59,14 +59,12 @@ async function deploy() {
   const {
     name: deploymentName,
     network,
+    contractAddress,
     contractWasmPath,
-    label,
-    initMsg,
+    migrateMsg,
     memo,
-    funds = [],
-    admin = account.address,
-    saveDeployment,
-  } = deploymentConfig;
+    saveMigration,
+  } = migrationConfig;
 
   console.log("Connected to blockchain");
 
@@ -81,33 +79,30 @@ async function deploy() {
   console.log(`Contract uploaded with Code ID: ${codeId}`);
 
   // Step 4: Instantiate contract
-  const instantiateReceipt = await client.instantiate(
+  const migrateReceipt = await client.migrate(
     account.address,
+    contractAddress,
     codeId,
-    initMsg,
-    label,
+    migrateMsg,
     "auto",
-    {
-      memo,
-      admin,
-      funds,
-    }
+    memo
   );
-  const { contractAddress, transactionHash } = instantiateReceipt;
+  const { transactionHash } = migrateReceipt;
   const transactionUrl = `${mintScanUrl}${transactionHash}`;
-  console.log(`Contract instantiated at address: ${contractAddress}`);
+  console.log(`Contract migration for address: ${contractAddress}`);
+  console.log(`Migration to codeId: ${codeId}`);
   console.log(`TransactionHash: ${transactionHash}`);
   console.log(`View transaction: ${transactionUrl}`);
 
   // Step 5: Save deployment info
-  if (saveDeployment) {
-    const deploymentInfo = {
+  if (saveMigration) {
+    const migrationInfo = {
       deployer: account.address,
       network,
       rpcEndpoint: networkConfig.rpcEndpoint,
-      codeId,
       contractAddress,
-      initMsg,
+      codeId,
+      migrateMsg,
       transactionHash,
       transactionUrl,
     };
@@ -119,10 +114,10 @@ async function deploy() {
     // save deployment info to file
     // time string in YYYY_MM_DD_HH_MM_SS format using dayjs, in UTC time
     const timeString = dayjs.utc().format("YYYY_MM_DD_HH_mm_ss");
-    const deploymentFilePath = `deployment/${network}/${deploymentName}_${timeString}.json`;
-    fs.writeFileSync(deploymentFilePath, JSON.stringify(deploymentInfo, null, 2));
-    console.log(`Deployment info saved to ${deploymentFilePath}`);
+    const migrationFilePath = `deployment/${network}/${deploymentName}_migration_${timeString}.json`;
+    fs.writeFileSync(migrationFilePath, JSON.stringify(migrationInfo, null, 2));
+    console.log(`Deployment info saved to ${migrationFilePath}`);
   }
 }
 
-deploy().catch(console.error);
+migrate().catch(console.error);

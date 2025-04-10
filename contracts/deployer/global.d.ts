@@ -4,9 +4,28 @@ declare interface DeploymentConfig {
   contractWasmPath: string;
   checksumsPath: string;
   initMsg: Record<string, any>;
+  label: string;
+  memo?: string;
+  funds?: {
+    denom: string;
+    amount: string;
+  }[];
+  admin?: string;
   saveDeployment: boolean;
 }
 
-declare interface DeploymentConfigImport {
-  deploymentConfig: DeploymentConfig;
+declare interface MigrationConfig {
+  name: string;
+  network: 'dukong' | 'mainnet';
+  contractAddress: string;
+  contractWasmPath: string;
+  checksumsPath: string;
+  migrateMsg: Record<string, any>;
+  memo?: string;
+  saveMigration: boolean;
+}
+
+declare interface ConfigImport {
+  deploymentConfig?: DeploymentConfig;
+  migrationConfig?: MigrationConfig;
 }
