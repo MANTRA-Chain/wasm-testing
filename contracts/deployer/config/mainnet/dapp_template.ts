@@ -3,6 +3,7 @@ export const deploymentConfig: DeploymentConfig = {
   "network": "mainnet",
   "contractWasmPath": "../artifacts/dapp_template.wasm",
   "checksumsPath": "../artifacts/checksums.txt",
+  "label": "My Dapp Template",
   "initMsg": {
     "count": 8
   },
