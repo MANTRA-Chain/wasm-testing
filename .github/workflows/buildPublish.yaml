@@ -29,11 +29,11 @@ jobs:
       # Run your build step here if needed, e.g., for a React app
       - name: Install dependencies
         run: yarn install
-        working-directory: ./
+        working-directory: ./webapp
 
       - name: Build project
         run: yarn build
-        working-directory: ./
+        working-directory: ./webapp
   
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/pages-action@v1
@@ -41,7 +41,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_PAGES_ACCOUNT_ID }}
           projectName: dapp-template
-          directory: ./dist
+          directory: ./webapp/dist
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
       # Increment the version
