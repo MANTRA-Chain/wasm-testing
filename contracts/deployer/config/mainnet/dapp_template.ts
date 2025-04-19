@@ -5,7 +5,7 @@ export const deploymentConfig: DeploymentConfig = {
   "checksumsPath": "../artifacts/checksums.txt",
   "label": "My Dapp Template",
   "initMsg": {
-    "count": 8
+    "count": 0
   },
   "saveDeployment": true
 }

@@ -29,3 +29,4 @@ dist-ssr
 # Contract
 target
 artifacts
+schema

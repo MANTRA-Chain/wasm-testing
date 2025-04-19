@@ -6,10 +6,6 @@ pub struct InstantiateMsg {
     pub count: Option<u64>,
 }
 
-pub struct GreetResp {
-    pub message: String,
-}
-
 #[cw_ownable_query]
 #[cw_serde]
 #[derive(QueryResponses)]

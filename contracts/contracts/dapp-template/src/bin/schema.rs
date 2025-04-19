@@ -1,6 +1,6 @@
 use cosmwasm_schema::write_api;
 
-use eeld_contract::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use dapp_template::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     write_api! {
