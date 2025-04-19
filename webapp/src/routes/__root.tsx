@@ -59,7 +59,9 @@ function App() {
           walletConnectOptions={WALLET_CONNECT_OPTIONS}
         >
           <Navbar />
-          <Outlet />
+          <div className="container mx-auto">
+            <Outlet />
+          </div>
           <Dialog open={isAwaitingTransactionDialogOpen}>
             <AwaitingTransactionDialog />
           </Dialog>

@@ -19,29 +19,19 @@ export const UserContainer = () => {
   const { data } = useAllBalances();
 
   if (!address) {
-    return (
-      <div className="container max-w-[576px] py-12 sm:px-2 md:px-0 flex flex-col gap-12">
-        <NotConnected />
-      </div>
-    );
+    return <NotConnected />;
   }
 
   if (!data) {
-    return (
-      <div className="container max-w-[576px] py-12 sm:px-2 md:px-0 flex flex-col gap-12">
-        <LoadingCard />
-      </div>
-    );
+    return <LoadingCard />;
   }
 
   return (
-    <div className="container max-w-[576px] py-12 sm:px-2 md:px-0 flex flex-col gap-12">
-      <Card className="relative flex flex-col items-center justify-center gap-3 overflow-clip w-full h-[200px]">
-        <div className="text-base-muted-foreground">OM Balance</div>
-        <div className="text-3xl text-base-card-foreground font-semibold">
-          {data.om.displayAmount}
-        </div>
-      </Card>
-    </div>
+    <Card className="container relative flex flex-col items-center justify-center gap-3 overflow-clip w-full h-[200px]">
+      <div className="text-base-muted-foreground">OM Balance</div>
+      <div className="text-3xl text-base-card-foreground font-semibold">
+        {data.om.displayAmount}
+      </div>
+    </Card>
   );
 };

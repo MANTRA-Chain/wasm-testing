@@ -4,8 +4,8 @@ import { NetworkSelector } from './NetworkSelector';
 
 export const Navbar = () => {
   return (
-    <header className="sticky top-0 z-50 w-full bg-background bg-zinc-950">
-      <nav className="flex flex-row h-14 items-center justify-between px-4 container">
+    <header className="sticky top-0 z-50 w-full bg-background">
+      <nav className="container mx-auto flex flex-row h-14 items-center justify-between">
         <AppIcon />
         <div className="flex flex-row gap-3">
           <ConnectWalletButton />
