@@ -12,7 +12,6 @@ export const NotConnected = () => {
       <div className="self-center">
         <ConnectWalletButton />
       </div>
-      <div className="w-[100px] h-[100px] bg-base-primary" />
     </Card>
   );
 };
