@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
- cd ../ && just schemas
+ cd ../contracts && just schemas

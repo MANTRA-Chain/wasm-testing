@@ -5,7 +5,7 @@ codegen
     contracts: [
       {
         name: 'dapp-template',
-        dir: '../contracts/dapp-template/schema',
+        dir: '../contracts/contracts/dapp-template/schema',
       },
     ],
     outPath: 'src/__generated__/contracts',
@@ -22,23 +22,23 @@ codegen
       client: {
         enabled: true,
       },
-      // reactQuery: {
-      //   enabled: true,
-      //   optionalClient: true,
-      //   version: 'v4',
-      //   mutations: true,
-      //   queryKeys: true,
-      //   queryFactory: true,
-      // },
+      reactQuery: {
+        enabled: true,
+        optionalClient: true,
+        version: 'v4',
+        mutations: true,
+        queryKeys: true,
+        queryFactory: true,
+      },
       messageComposer: {
         enabled: true,
       },
       messageBuilder: {
         enabled: true,
       },
-      // useContractsHook: {
-      //   enabled: true,
-      // },
+      useContractsHook: {
+        enabled: true,
+      },
     },
   })
   .then(() => {

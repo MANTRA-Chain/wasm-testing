@@ -9,12 +9,12 @@ export const useAppConfig = () => {
     case MantraChain.Mainnet:
       return {
         contractAddress:
-          'mantra1erh2yx5ren3hswq4gvu3v7jrm7el77xt24rt2jjhjnde9t9ad0asv44pcu',
+          'mantra1c4darky93xxfseg95vpvn55cul9uf5raza5qsrfzwk2pmue6xctsfpws3f',
       };
     case MantraChain.Testnet:
       return {
         contractAddress:
-          'mantra1erh2yx5ren3hswq4gvu3v7jrm7el77xt24rt2jjhjnde9t9ad0asv44pcu',
+          'mantra1c4darky93xxfseg95vpvn55cul9uf5raza5qsrfzwk2pmue6xctsfpws3f',
       };
     default:
       throw new Error('Unsupported chain');
