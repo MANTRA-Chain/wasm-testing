@@ -8,7 +8,7 @@ import { NotConnected } from '../common/NotConnected';
 
 const LoadingCard = () => {
   return (
-    <Card className="relative flex flex-col items-center justify-center gap-3 overflow-clip w-full h-[200px]">
+    <Card className="w-full h-[200px] py-0">
       <Skeleton className="w-full h-full rounded-md opacity-20" />
     </Card>
   );

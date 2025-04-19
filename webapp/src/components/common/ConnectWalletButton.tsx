@@ -72,7 +72,7 @@ export const ConnectWalletButton = () => {
 
   if (!address) {
     return (
-      <Button variant="primary" onClick={connect}>
+      <Button variant="primary" className="" onClick={connect}>
         Connect Wallet
       </Button>
     );

@@ -2,7 +2,6 @@ import { MantraChain, MantraProvider } from '@mantrachain/connect';
 import type { Preview } from '@storybook/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useEffect } from 'react';
 
 import '../src/index.css';
 
@@ -25,12 +24,6 @@ const queryClient = new QueryClient();
 
 const decorators = [
   (Story) => {
-    // default to dark mode
-    useEffect(() => {
-      if (localStorage.getItem('chakra-ui-color-mode') === null) {
-        localStorage.setItem('chakra-ui-color-mode', 'dark');
-      }
-    }, []);
     return (
       <QueryClientProvider client={queryClient}>
         <MantraProvider

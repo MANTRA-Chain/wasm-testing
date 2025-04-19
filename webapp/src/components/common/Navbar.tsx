@@ -1,5 +1,6 @@
 import { AppIcon } from './AppIcon';
 import { ConnectWalletButton } from './ConnectWalletButton';
+import { ModeToggle } from './ModeToggle';
 import { NetworkSelector } from './NetworkSelector';
 
 export const Navbar = () => {
@@ -8,6 +9,7 @@ export const Navbar = () => {
       <nav className="container mx-auto flex flex-row h-14 items-center justify-between">
         <AppIcon />
         <div className="flex flex-row gap-3">
+          <ModeToggle />
           <ConnectWalletButton />
           <NetworkSelector />
         </div>
