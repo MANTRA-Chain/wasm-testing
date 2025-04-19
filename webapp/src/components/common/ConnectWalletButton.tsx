@@ -54,11 +54,14 @@ const ConnectedDropdownMenu = () => {
           <Skeleton className="w-[80px] h-[20px]" />
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={copyWalletAddress}>
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={copyWalletAddress}
+        >
           <Copy />
           <span>Copy wallet address</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={disconnect}>
+        <DropdownMenuItem className="cursor-pointer" onClick={disconnect}>
           <LogOut />
           <span>Disconnect</span>
         </DropdownMenuItem>
