@@ -1474,10 +1474,10 @@
   resolved "https://registry.yarnpkg.com/@ledgerhq/logs/-/logs-6.12.0.tgz#ad903528bf3687a44da435d7b2479d724d374f5d"
   integrity sha512-ExDoj1QV5eC6TEbMdLUMMk9cfvNKhhv5gXol4SmULRVCx/3iyCPhJ74nsb3S0Vb+/f+XujBEj3vQn5+cwS0fNA==
 
-"@mantrachain/connect@^2.0.0-alpha.9":
-  version "2.0.0-alpha.9"
-  resolved "https://registry.yarnpkg.com/@mantrachain/connect/-/connect-2.0.0-alpha.9.tgz#71f933c3021e3362d3c249203c560b794817656d"
-  integrity sha512-ZhcK3+tbrg+0JuIFlFQNlj7SuuesKLiTzIp9ZC9hcuGI6s3SP4wJrjokl5pw8ILz1u+eB9G/xO9sE+0mAYESdA==
+"@mantrachain/connect@^2.0.0-alpha.10":
+  version "2.0.0-alpha.10"
+  resolved "https://registry.yarnpkg.com/@mantrachain/connect/-/connect-2.0.0-alpha.10.tgz#3d3c9f87bdaa1e6dd98c29e807078b42dc192944"
+  integrity sha512-uBycpdseszCvytzNMoJseEBWSdttIUyywEgmRba+arM0zrAMj4AAuK7vbTaPaOSXjC7Y3W2gEFtavrHB+Iis4A==
   dependencies:
     "@chain-registry/types" "^0.50.85"
     "@cosmjs/cosmwasm-stargate" "^0.33.0"
