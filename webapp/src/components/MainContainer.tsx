@@ -4,7 +4,7 @@ import { useAllBalances } from '@/hooks/useAllBalances';
 import { Card } from '@/shadcn/components/ui/card';
 import { Skeleton } from '@/shadcn/components/ui/skeleton';
 
-import { NotConnected } from '../common/NotConnected';
+import { NotConnected } from './common/NotConnected';
 
 const LoadingCard = () => {
   return (
@@ -14,7 +14,7 @@ const LoadingCard = () => {
   );
 };
 
-export const UserContainer = () => {
+export const MainContainer = () => {
   const { address } = useMantra();
   const { data } = useAllBalances();
 

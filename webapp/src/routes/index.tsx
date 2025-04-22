@@ -1,11 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { UserContainer } from '@/components/User/UserContainer';
+import { MainContainer } from '@/components/MainContainer';
 
 export const Route = createFileRoute('/')({
   component: Index,
 });
 
 function Index() {
-  return <UserContainer />;
+  return <MainContainer />;
 }

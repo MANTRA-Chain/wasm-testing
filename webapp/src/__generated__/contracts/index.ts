@@ -7,28 +7,26 @@
 import * as _0 from "./DappTemplate.types";
 import * as _1 from "./DappTemplate.client";
 import * as _2 from "./DappTemplate.message-composer";
-import * as _3 from "./DappTemplate.react-query";
-import * as _4 from "./DappTemplate.message-builder";
-import * as _5 from "./DappTemplate.provider";
-import * as _6 from "./contractContextProviders";
-import * as _7 from "./contractContextBase";
-import * as _8 from "./contracts-context";
+import * as _3 from "./DappTemplate.message-builder";
+import * as _4 from "./DappTemplate.provider";
+import * as _5 from "./contractContextProviders";
+import * as _6 from "./contractContextBase";
+import * as _7 from "./contracts-context";
 export namespace contracts {
   export const DappTemplate = {
     ..._0,
     ..._1,
     ..._2,
     ..._3,
-    ..._4,
-    ..._5
+    ..._4
   };
   export const undefined = {
-    ..._6
+    ..._5
   };
   export const contractContextBase = {
-    ..._7
+    ..._6
   };
   export const contractsContext = {
-    ..._8
+    ..._7
   };
 }

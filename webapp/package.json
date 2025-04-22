@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "codegen-contract": "node codegen-contract.js",
     "codegen-schema": "./codegen-schema.sh",
-    "codegen": "yarn codegen-contract",
+    "codegen": "yarn codegen-schema && yarn codegen-contract",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

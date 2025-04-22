@@ -22,14 +22,14 @@ codegen
       client: {
         enabled: true,
       },
-      reactQuery: {
-        enabled: true,
-        optionalClient: true,
-        version: 'v4',
-        mutations: true,
-        queryKeys: true,
-        queryFactory: true,
-      },
+      // reactQuery: {
+      //   enabled: true,
+      //   optionalClient: true,
+      //   version: 'v5',
+      //   mutations: true,
+      //   queryKeys: true,
+      //   queryFactory: true,
+      // },
       messageComposer: {
         enabled: true,
       },
