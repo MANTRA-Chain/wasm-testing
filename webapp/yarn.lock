@@ -1172,7 +1172,7 @@
   resolved "https://registry.yarnpkg.com/@humanwhocodes/retry/-/retry-0.4.2.tgz#1860473de7dfa1546767448f333db80cb0ff2161"
   integrity sha512-xeO57FpIu4p1Ri3Jq/EXq4ClRm86dVF2z/+kvFnyqVYRavTZmaFaUBbWCOuuTh0o/g7DSsk6kc2vrS4Vl5oPOQ==
 
-"@interchain-ui/react@^1.26.2", "@interchain-ui/react@^1.26.3":
+"@interchain-ui/react@^1.26.2":
   version "1.26.3"
   resolved "https://registry.yarnpkg.com/@interchain-ui/react/-/react-1.26.3.tgz#71c18d95a43eb57b2b3b2ecc256a24e4edc73cd9"
   integrity sha512-kvGOZaSDJLNxtxieiyPMHOzxBGkpHR/BCpg/UEMDl2l7nLoPrygB/Oux1QEv/cwkw8GvepOBM7pzfJf8xk1IbQ==
@@ -1474,10 +1474,10 @@
   resolved "https://registry.yarnpkg.com/@ledgerhq/logs/-/logs-6.12.0.tgz#ad903528bf3687a44da435d7b2479d724d374f5d"
   integrity sha512-ExDoj1QV5eC6TEbMdLUMMk9cfvNKhhv5gXol4SmULRVCx/3iyCPhJ74nsb3S0Vb+/f+XujBEj3vQn5+cwS0fNA==
 
-"@mantrachain/connect@^2.0.0-alpha.5":
-  version "2.0.0-alpha.5"
-  resolved "https://registry.yarnpkg.com/@mantrachain/connect/-/connect-2.0.0-alpha.5.tgz#436eb87326e178d1096e4804b7743b1531809646"
-  integrity sha512-D/EJcl3+vgmasI/HEF1HWbZWBeonkKc7qqUgjWTUuZvLldDyH+vefzkofakJYG8J1pa91AwtKu4doLa5p6wHTA==
+"@mantrachain/connect@^2.0.0-alpha.9":
+  version "2.0.0-alpha.9"
+  resolved "https://registry.yarnpkg.com/@mantrachain/connect/-/connect-2.0.0-alpha.9.tgz#71f933c3021e3362d3c249203c560b794817656d"
+  integrity sha512-ZhcK3+tbrg+0JuIFlFQNlj7SuuesKLiTzIp9ZC9hcuGI6s3SP4wJrjokl5pw8ILz1u+eB9G/xO9sE+0mAYESdA==
   dependencies:
     "@chain-registry/types" "^0.50.85"
     "@cosmjs/cosmwasm-stargate" "^0.33.0"

@@ -17,8 +17,7 @@
   "dependencies": {
     "@cosmjs/cosmwasm-stargate": "^0.33.0",
     "@cosmjs/encoding": "^0.33.0",
-    "@interchain-ui/react": "^1.26.3",
-    "@mantrachain/connect": "^2.0.0-alpha.5",
+    "@mantrachain/connect": "^2.0.0-alpha.9",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
     "@radix-ui/react-label": "^2.1.1",

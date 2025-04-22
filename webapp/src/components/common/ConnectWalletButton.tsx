@@ -1,6 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import '@interchain-ui/react/styles';
 import { useMantra } from '@mantrachain/connect';
 import { LogOut, Copy } from 'lucide-react';
 
