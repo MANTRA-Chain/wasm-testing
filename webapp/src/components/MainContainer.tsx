@@ -4,7 +4,7 @@ import { useAllBalances } from '@/hooks/useAllBalances';
 import {
   useCounter,
   useIncrementMutation,
-  useResetCounter,
+  useResetCounterMutation,
 } from '@/hooks/useCounter';
 import { Button } from '@/shadcn/components/ui/button';
 import { Card } from '@/shadcn/components/ui/card';
@@ -25,7 +25,7 @@ export const MainContainer = () => {
   const { data } = useAllBalances();
   const { data: counterData } = useCounter();
   const { mutate: incrementCounter } = useIncrementMutation();
-  const { mutate: resetCounter } = useResetCounter();
+  const { mutate: resetCounter } = useResetCounterMutation();
 
   if (!address) {
     return <NotConnected />;
