@@ -1,4 +1,5 @@
 import { MantraChain, MantraProvider } from '@mantrachain/connect';
+import { withThemeByClassName } from '@storybook/addon-themes';
 import type { Preview } from '@storybook/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -35,6 +36,13 @@ const decorators = [
       </QueryClientProvider>
     );
   },
+  withThemeByClassName({
+    themes: {
+      light: 'light',
+      dark: 'dark',
+    },
+    defaultTheme: 'dark',
+  }),
 ];
 
 const preview: Preview = {
