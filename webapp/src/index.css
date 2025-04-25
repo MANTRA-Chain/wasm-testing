@@ -707,7 +707,6 @@
   --color-base-destructive-muted-foreground: var(--colors-destructive-muted-light);
   --color-base-destructive-foreground: var(--colors-destructive-foreground-light);
   --color-base-positive: var(--colors-positive-light);
-  --color-base-positive: var(--colors-positive-dark);
   --color-base-positive-muted-foreground: var(--colors-positive-muted-light);
   --color-base-positive-foreground: var(--colors-positive-foreground-light);
   --color-base-warning: var(--colors-warning-light);
