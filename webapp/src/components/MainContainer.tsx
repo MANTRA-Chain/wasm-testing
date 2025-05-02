@@ -36,7 +36,7 @@ export const MainContainer = () => {
   }
 
   return (
-    <Card className="container relative flex flex-col items-center justify-center gap-3 overflow-clip w-full">
+    <Card className="w-full relative flex flex-col items-center justify-center gap-3 overflow-clip">
       <div className="text-base-muted-foreground">OM Balance</div>
       <div className="text-3xl text-base-card-foreground font-semibold">
         {data.om.displayAmount}
