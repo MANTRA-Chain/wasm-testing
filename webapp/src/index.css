@@ -1,7 +1,108 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Font declarations for FT Sterling */
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-RegularItalic.woff') format('woff');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-LightItalic.woff') format('woff');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-Book.woff') format('woff');
+  font-weight: 350;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-BookItalic.woff') format('woff');
+  font-weight: 350;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-MediumItalic.woff') format('woff');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-Semi-Bold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-Semi-BoldItalic.woff') format('woff');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'FT Sterling';
+  src: url('./assets/fonts/FTSterlingTrial-BoldItalic.woff') format('woff');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --default-font-family: 'FT Sterling', sans-serif;
+}
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -24,7 +125,7 @@
   button:not([disabled]),
   [role="button"]:not([disabled]) {
     cursor: pointer;
-  }  
+  }
 }
 
 /* 1. TailwindCSS - Default */
@@ -196,15 +297,15 @@
   --blur-blur-3xl: 64px;
   --font-style-italic: italic;
   --font-style-not-italic: normal;
-  --font-weight-thin: 100px;
-  --font-weight-extralight: 200px;
-  --font-weight-light: 300px;
-  --font-weight-normal: 400px;
-  --font-weight-medium: 500px;
-  --font-weight-semibold: 600px;
-  --font-weight-bold: 700px;
-  --font-weight-extrabold: 800px;
-  --font-weight-black: 900px;
+  --font-weight-thin: 100;
+  --font-weight-extralight: 200;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
   --font-letter-spacing-tighter: -0.800000011920929px;
   --font-letter-spacing-tight: -0.4000000059604645px;
   --font-letter-spacing-normal: 0px;
