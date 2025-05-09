@@ -43,14 +43,16 @@ export const PriceString: React.FC<Props> = ({
 }) => {
   const [integer, fraction] = amount.split('.');
   return (
-    <span className={cn(className, priceStringVariants({ state }))}>
+    <span className={cn(priceStringVariants({ state }), className)}>
       {symbol && <span>{symbol}</span>}
       {prefix && <span>{prefix}</span>}
       <span>
         <span>{integer}</span>
         <span className={cn(fractionalVariants({ state }))}>.{fraction}</span>
       </span>
-      {suffix && <span>{suffix}</span>}
+      {suffix && (
+        <span className={cn(fractionalVariants({ state }))}>{suffix}</span>
+      )}
     </span>
   );
 };
