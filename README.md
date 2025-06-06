@@ -44,7 +44,7 @@ Specify your Node.js version in `webapp/package.json`:
 ```json
 {
   "engines": {
-    "node": ">=18.0.0"  // Your required Node.js version
+    "node": ">=18.0.0"  // ✅ Fixed version required
   }
 }
 ```
