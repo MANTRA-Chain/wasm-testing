@@ -30,7 +30,7 @@ on:
 jobs:
   initialize:
     name: "Initialize DApp Infrastructure"
-    if: github.repository != 'MANTRA-Chain/dapp-template-devsecops'
+    if: github.repository != 'MANTRA-Chain/dapp-template'
     uses: MANTRA-Chain-Tech/devsecops-reusable-workflows/.github/workflows/reusable-dapp-init.yaml@main
     with:
       repository_name: ${{ github.repository }}
