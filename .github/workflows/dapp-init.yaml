@@ -1,0 +1,43 @@
+# ----------------------------------------
+# DApp Infrastructure Initialization Workflow
+# ----------------------------------------
+# PREREQUISITES:
+# --------------
+# The following environment variables MUST be defined in the organization:
+# - AUTOMATION_GIT_USERNAME: Username for Git commit operations
+# - AUTOMATION_GIT_EMAIL: Email for Git commit operations
+# - DAPP_FACTORY_CLOUDFLARE_ACCOUNT_ID: Cloudflare Account ID for deployment
+# 
+# The following secrets MUST be defined in the organization:
+# - DAPP_FACTORY_CLOUDFLARE_API_TOKEN: Cloudflare API token for production environment
+# - CLOUDFLARE_PAGES_ACCOUNT_ID: Cloudflare Pages Account ID for deployment
+# - GIT_TOKEN_DAPP_TRIGGER_WORKSPACE_CREATION: GitHub token with permissions to trigger Terraform Cloud workspace creation
+# 
+# Note: GITHUB_TOKEN is automatically provided by GitHub Actions for repository access
+# ----------------------------------------
+
+name: "DApp Infrastructure Initialization"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/**'
+      - 'webapp/package.json'
+  workflow_dispatch:
+
+jobs:
+  initialize:
+    name: "Initialize DApp Infrastructure"
+    if: github.repository != 'MANTRA-Chain/dapp-template-devsecops'
+    uses: MANTRA-Chain-Tech/devsecops-reusable-workflows/.github/workflows/reusable-dapp-init.yaml@main
+    with:
+      repository_name: ${{ github.repository }}
+      automation_git_username: ${{ vars.AUTOMATION_GIT_USERNAME }}
+      automation_git_email: ${{ vars.AUTOMATION_GIT_EMAIL }}
+      dapp_factory_cloudflare_account_id: ${{ vars.DAPP_FACTORY_CLOUDFLARE_ACCOUNT_ID }}
+    secrets:
+      git_token_dapp_trigger_workspace_creation: ${{ secrets.GIT_TOKEN_DAPP_TRIGGER_WORKSPACE_CREATION }}
+      cloudflare_pages_api_token: ${{ secrets.DAPP_FACTORY_CLOUDFLARE_API_TOKEN }}
+      cloudflare_pages_account_id: ${{ vars.DAPP_FACTORY_CLOUDFLARE_ACCOUNT_ID }}

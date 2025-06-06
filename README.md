@@ -9,6 +9,98 @@ This repository is a multi-contract decentralized application template that incl
 - **Automation & Tasks:** Custom tasks are managed in the [`xtask/`](xtask/) directory.
 - **Scripts:** Use the scripts in the [`scripts/`](scripts/) directory to automate builds, schema generation, and artifact management.
 
+## Deployment & Development
+
+### How Your App Gets Deployed
+
+When you create a repository from this template, the following happens automatically:
+
+1. **First Commit Trigger**: On your first commit, GitHub Actions automatically sets up your deployment infrastructure
+2. **Cloudflare Pages Setup**: Your frontend in the `webapp/` folder is automatically deployed to Cloudflare Pages
+3. **Continuous Deployment**: Every push to the `main` branch triggers a new deployment
+4. **Preview Deployments**: Pull requests get their own preview URLs for testing
+5. **Deployment Confirmation**: When the GitHub Actions workflow completes successfully (green checkmark ✅), your app is deployed and live
+
+Your app will be available at: `https://mantra-dapp-[your-repo-name].pages.dev`
+
+### What You Need to Configure
+
+#### 📦 Package Manager (Required)
+
+Your `webapp/package.json` must specify an exact package manager version:
+
+```json
+{
+  "packageManager": "npm@10.2.0"  // ✅ Fixed version required
+}
+```
+
+**Important**: Only fixed versions are supported. Ranges like `^10.2.0` or `~10.2.0` will cause deployment to fail.
+
+#### 🟢 Node.js Version (Required)
+
+Specify your Node.js version in `webapp/package.json`:
+
+```json
+{
+  "engines": {
+    "node": ">=18.0.0"  // Your required Node.js version
+  }
+}
+```
+
+#### 🔧 Environment Variables (Optional)
+
+Configure environment variables in `.github/settings.json`:
+
+```json
+{
+  "environment": {
+    "preview": {
+      "NEXT_PUBLIC_API_URL": "https://api-staging.example.com"
+    },
+    "production": {
+      "NEXT_PUBLIC_API_URL": "https://api.example.com"
+    }
+  }
+}
+```
+
+**⚠️ Important Limitations:**
+- **Create/Update Only**: Environment variables can only be created or updated through this configuration
+- **No Deletion**: Removing variables from `settings.json` won't delete them from Cloudflare
+- **To Delete Variables**: Contact the DevOps team for manual deletion
+
+#### 🔐 Secrets Management (Important)
+
+**Never store secrets in your repository!** This includes:
+- API keys
+- Database credentials  
+- Private tokens
+- Any sensitive configuration
+
+**Why?** Even in private repositories:
+- Git history permanently records all changes
+- Anyone with repo access can see all historical values
+- Leaked secrets in commits are difficult to fully remove
+
+**How to add secrets:**
+1. Contact the DevOps team
+2. They will securely add your secrets directly in Cloudflare
+3. Reference them in your code using environment variables
+
+### Development Workflow (webapp)
+
+Since this is a monorepo, these steps apply specifically to the `webapp/` directory:
+
+1. **Local Development**: Work in the `webapp/` directory as usual
+2. **Testing**: Your changes are automatically deployed to preview URLs when you create PRs
+3. **Production**: Merging to `main` automatically deploys to production
+
+### Deployment Status
+
+After deployment, a badge will be added to your README showing the deployment status. You can click it to view your live app.
+
 ## Project Structure
 
 ```

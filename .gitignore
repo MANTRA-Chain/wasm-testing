@@ -30,3 +30,9 @@ dist-ssr
 target
 artifacts
 schema
+
+# Terraform
+.terraform.lock.hcl
+terraform.tfstate
+.terraform
+terraform.tfstate.backup

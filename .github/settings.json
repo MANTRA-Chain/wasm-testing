@@ -1,0 +1,10 @@
+{
+  "environment": { 
+    "preview": {
+      "EXAMPLE": "PREVIEW"
+    },
+    "production": {
+      "EXAMPLE": "PRODUCTION"
+    }
+  }
+}
