@@ -1,3 +1,6 @@
+<!-- CLOUDFLARE_PAGES_BADGE_START -->
+[![Cloudflare Pages Deployment](https://img.shields.io/badge/Cloudflare_Pages-deployed-blue.svg)](https://mantra-dapp-dapp-template.pages.dev)
+<!-- CLOUDFLARE_PAGES_BADGE_END -->
 # MANTRA DAPP TEMPLATE
 
 This repository is a multi-contract decentralized application template that includes smart contracts and a frontend. It is designed to help you quickly develop and deploy your dapp.
