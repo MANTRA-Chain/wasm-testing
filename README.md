@@ -13,3 +13,10 @@ The script will:
 - Execute all the `ExecuteMsg` messages of the contract
 - Query the contract
 - Migrate the contract
+
+## Requirements
+
+- Docker
+- just (https://github.com/casey/just)
+- jq
+- mantrachaind
