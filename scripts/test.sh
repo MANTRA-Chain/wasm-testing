@@ -155,10 +155,10 @@ echo -e "\\nExecuting SendFunds without funds, should fail..."
 execute_tx '{"send_funds":{"receipient":"'${contract_addresses[1]}'"}}'
 
 echo -e "\\nExecuting CallContract with reply..."
-execute_tx '{"call_contract":{"contract":"'${contract_addresses[1]}'","reply":true}}'
+execute_tx '{"call_contract":{"contract":"'${contract_addresses[1]}'","reply":true}}' "10uom"
 
 echo -e "\\nExecuting CallContract without reply..."
-execute_tx '{"call_contract":{"contract":"'${contract_addresses[1]}'","reply":false}}'
+execute_tx '{"call_contract":{"contract":"'${contract_addresses[1]}'","reply":false}}' "10uom"
 
 echo -e "\\nExecuting DeleteEntryOnMap... (replace with actual key, e.g., 1)"
 execute_tx '{"delete_entry_on_map":{"key":1}}'
