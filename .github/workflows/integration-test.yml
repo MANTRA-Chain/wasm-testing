@@ -1,0 +1,188 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      rpc_endpoint:
+        description: 'Custom RPC endpoint (optional)'
+        required: false
+        type: string
+      chain_id:
+        description: 'Custom chain ID (optional)'
+        required: false
+        type: string
+
+env:
+  # Default test network configuration
+  DEFAULT_RPC: "https://rpc.testnet.mantrachain.io:443"
+  DEFAULT_CHAIN_ID: "mantra-hongbai-1"
+  DEFAULT_DENOM: "uom"
+  DEFAULT_BINARY: "mantrad"
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: wasm32-unknown-unknown
+        override: true
+        components: rustfmt, clippy
+
+    - name: Cache Rust dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+
+    - name: Install just
+      uses: extractions/setup-just@v1
+
+    - name: Install wasm-opt
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y binaryen
+
+    - name: Install jq
+      run: sudo apt-get install -y jq
+
+    - name: Download and setup mantrad binary
+      run: |
+        # Download the latest mantrad binary for testnet
+        wget -O mantrad https://github.com/MANTRA-Finance/mantra-chain/releases/download/v3.0.0/mantrad-3.0.0-linux-amd64
+        chmod +x mantrad
+        sudo mv mantrad /usr/local/bin/
+
+        # Verify installation
+        mantrad version
+
+    - name: Setup test wallet
+      run: |
+        # Create a test keyring directory
+        mkdir -p ~/.mantrad
+
+        # Import test wallet (you'll need to add the mnemonic as a secret)
+        echo "${{ secrets.TEST_WALLET_MNEMONIC }}" | mantrad keys add test-wallet --recover --keyring-backend test
+
+        # Get wallet address
+        WALLET_ADDRESS=$(mantrad keys show test-wallet -a --keyring-backend test)
+        echo "WALLET_ADDRESS=$WALLET_ADDRESS" >> $GITHUB_ENV
+
+    - name: Check wallet balance
+      run: |
+        RPC="${{ github.event.inputs.rpc_endpoint || env.DEFAULT_RPC }}"
+        WALLET_ADDRESS="${{ env.WALLET_ADDRESS }}"
+
+        # Check if wallet has sufficient funds
+        BALANCE=$(mantrad q bank balances $WALLET_ADDRESS --node $RPC --output json | jq -r '.balances[] | select(.denom=="uom") | .amount // "0"')
+        echo "Wallet balance: $BALANCE uom"
+
+        # Require at least 1000000 uom (1 OM) for tests
+        if [ "$BALANCE" -lt 1000000 ]; then
+          echo "Insufficient balance. Need at least 1000000 uom, have $BALANCE uom"
+          echo "Please fund the test wallet: $WALLET_ADDRESS"
+          exit 1
+        fi
+
+    - name: Compile contracts
+      run: |
+        just optimize
+
+    - name: Verify artifacts
+      run: |
+        if [ ! -d "artifacts" ]; then
+          echo "Artifacts directory not found"
+          exit 1
+        fi
+
+        if [ -z "$(ls -A artifacts/*.wasm 2>/dev/null)" ]; then
+          echo "No WASM files found in artifacts directory"
+          exit 1
+        fi
+
+        echo "Found WASM files:"
+        ls -la artifacts/*.wasm
+
+    - name: Make test script executable
+      run: chmod +x scripts/test_ci.sh
+
+    - name: Run integration tests
+      env:
+        RPC: ${{ github.event.inputs.rpc_endpoint || env.DEFAULT_RPC }}
+        CHAIN_ID: ${{ github.event.inputs.chain_id || env.DEFAULT_CHAIN_ID }}
+        DENOM: ${{ env.DEFAULT_DENOM }}
+        BINARY: ${{ env.DEFAULT_BINARY }}
+        WALLET: test-wallet
+      run: |
+        # Set keyring backend for non-interactive use
+        export MANTRAD_KEYRING_BACKEND=test
+
+        # Run the comprehensive test suite
+        ./scripts/test_ci.sh \
+          -r "$RPC" \
+          -c "$CHAIN_ID" \
+          -d "$DENOM" \
+          -b "$BINARY" \
+          -w "$WALLET"
+
+    - name: Upload test artifacts on failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-artifacts-${{ github.run_id }}
+        path: |
+          artifacts/
+          target/wasm32-unknown-unknown/release/
+        retention-days: 7
+
+    - name: Cleanup test data
+      if: always()
+      run: |
+        # Clean up any temporary files or test data
+        rm -rf ~/.mantrad/test_*
+
+        # Optional: Clean cargo cache if needed
+        # cargo clean
+
+  # Optional: Add a job to test against multiple networks
+  multi-network-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    strategy:
+      matrix:
+        network:
+          - name: "testnet"
+            rpc: "https://rpc.testnet.mantrachain.io:443"
+            chain_id: "mantra-hongbai-1"
+          # Add more networks as needed
+          # - name: "devnet"
+          #   rpc: "https://rpc.devnet.mantrachain.io:443"
+          #   chain_id: "mantra-devnet-1"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up test environment
+      run: |
+        echo "Testing on network: ${{ matrix.network.name }}"
+        echo "RPC: ${{ matrix.network.rpc }}"
+        echo "Chain ID: ${{ matrix.network.chain_id }}"
+
+    # ... (repeat similar steps as above but with matrix network config)
