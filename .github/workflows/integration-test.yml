@@ -18,10 +18,10 @@ on:
 
 env:
   # Default test network configuration
-  DEFAULT_RPC: "https://rpc.testnet.mantrachain.io:443"
-  DEFAULT_CHAIN_ID: "mantra-hongbai-1"
+  DEFAULT_RPC: "https://rpc.dukong.mantrachain.io:443"
+  DEFAULT_CHAIN_ID: "mantra-dukong-1"
   DEFAULT_DENOM: "uom"
-  DEFAULT_BINARY: "mantrad"
+  DEFAULT_BINARY: "mantrachaind"
 
 jobs:
   integration-test:
@@ -168,8 +168,8 @@ jobs:
       matrix:
         network:
           - name: "testnet"
-            rpc: "https://rpc.testnet.mantrachain.io:443"
-            chain_id: "mantra-hongbai-1"
+            rpc: "https://rpc.dukong.mantrachain.io:443"
+            chain_id: "mantra-dukong-1"
           # Add more networks as needed
           # - name: "devnet"
           #   rpc: "https://rpc.devnet.mantrachain.io:443"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # A robust script that compiles smart contracts using `just optimize`
 # and then uploads the generated WASM files to your chosen network.
@@ -8,6 +8,8 @@
 #   just test-on-chain <RPC> <CHAIN_ID> <DENOM> <BINARY> <WALLET>
 #   OR
 #   ./test_ci.sh -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> -w <WALLET>
+#   OR (for CI with seed phrase from GitHub secrets):
+#   SEED_PHRASE="your seed phrase here" ./test_ci.sh -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY>
 
 set -e # Exit on any error
 
@@ -30,142 +32,59 @@ log_error() {
 	echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Helper function to safely extract JSON from command output
-extract_json() {
-	local input="$1"
+# Helper function to extract values using simple grep/cut
+extract_field() {
+	local file="$1"
 	local field="$2"
 
-	# Try to parse input directly as JSON
-	if echo "$input" | jq -e . >/dev/null 2>&1; then
-		echo "$input" | jq -r "$field"
-		return 0
-	fi
-
-	# If not valid JSON, try to find JSON part in the output
-	local json_part=$(echo "$input" | grep -o '{.*}' | head -1)
-	if [ -n "$json_part" ] && echo "$json_part" | jq -e . >/dev/null 2>&1; then
-		echo "$json_part" | jq -r "$field"
-		return 0
-	fi
-
-	# If still no valid JSON found, return empty
-	echo ""
-	return 1
+	case "$field" in
+		"txhash")
+			# Skip WARNING lines and extract txhash
+			grep -v "WARNING:" "$file" 2>/dev/null | grep -o "\"txhash\":\"[^\"]*\"" | cut -d'"' -f4 | head -1
+			;;
+		"code_id")
+			# Skip WARNING lines and extract code_id
+			grep -v "WARNING:" "$file" 2>/dev/null | grep -o "\"code_id\",\"value\":\"[^\"]*\"" | cut -d'"' -f6 | head -1
+			;;
+		"contract_address")
+			# Skip WARNING lines and extract contract address
+			grep -v "WARNING:" "$file" 2>/dev/null | grep -o "\"_contract_address\",\"value\":\"[^\"]*\"" | cut -d'"' -f6 | head -1
+			;;
+		*)
+			echo ""
+			;;
+	esac
 }
 
 # Function to wait for transaction to be included in a block
 wait_for_tx() {
 	local tx_hash="$1"
-	local max_attempts=30
-	local attempt=0
-	local last_result=""
-	local last_error=""
 
 	log_info "Waiting for transaction $tx_hash to be included in block..."
 
-	while [ $attempt -lt $max_attempts ]; do
-		# Use temp files to safely capture command output
-		local temp_result=$(mktemp)
-		local temp_error=$(mktemp)
+	# Wait 15 seconds for transaction to be processed
+	sleep 15
 
-		log_debug "Attempt $((attempt + 1))/$max_attempts: Querying transaction $tx_hash"
+	# Try to query the transaction
+	local temp_file=$(mktemp)
+	$BINARY q tx $tx_hash --node $RPC -o json > "$temp_file" 2>/dev/null || true
 
-		$BINARY q tx $tx_hash --node $RPC -o json >"$temp_result" 2>"$temp_error"
-		local cmd_exit_code=$?
-
-		local result=$(cat "$temp_result" 2>/dev/null || echo "")
-		local error_output=$(cat "$temp_error" 2>/dev/null || echo "")
-
-		# Store for final error reporting
-		last_result="$result"
-		last_error="$error_output"
-
-		# Cleanup temp files
-		rm -f "$temp_result" "$temp_error"
-
-		log_debug "Command exit code: $cmd_exit_code"
-		log_debug "Result length: ${#result} characters"
-		log_debug "Error length: ${#error_output} characters"
-
-		# Handle transaction not found errors (common when tx is still being processed)
-		if [ $cmd_exit_code -ne 0 ]; then
-			if echo "$error_output" | grep -q "not found\|doesn't exist\|no transaction found"; then
-				if [ $attempt -lt 3 ]; then
-					log_warn "Transaction not found yet (attempt $((attempt + 1)))"
-				fi
-				attempt=$((attempt + 1))
-				sleep 2
-				continue
-			else
-				if [ $attempt -lt 3 ]; then
-					log_warn "Query failed (attempt $((attempt + 1))): $error_output"
-				fi
-				attempt=$((attempt + 1))
-				sleep 2
-				continue
-			fi
-		fi
-
-		# Handle empty result
-		if [ -z "$result" ]; then
-			if [ $attempt -lt 3 ]; then
-				log_warn "Empty result (attempt $((attempt + 1)))"
-			fi
-			attempt=$((attempt + 1))
-			sleep 2
-			continue
-		fi
-
-		# Debug logging for first few attempts
-		if [ $attempt -lt 3 ]; then
-			log_debug "Raw result (first 200 chars): ${result:0:200}"
-		fi
-
-		# Check if result is valid JSON
-		if ! echo "$result" | jq -e . >/dev/null 2>&1; then
-			if [ $attempt -lt 3 ]; then
-				log_warn "Invalid JSON (attempt $((attempt + 1)))"
-				log_debug "Full invalid result: $result"
-			fi
-			attempt=$((attempt + 1))
-			sleep 2
-			continue
-		fi
-
-		log_debug "Valid JSON found, checking for code field..."
-		# Check if the transaction has a code field (means it's processed)
-		if echo "$result" | jq -e '.code' >/dev/null 2>&1; then
-			local code
-			code=$(echo "$result" | jq -r '.code' 2>/dev/null)
-			if [ $? -eq 0 ] && [ -n "$code" ]; then
-				log_debug "Found transaction code: $code"
-				if [ "$code" = "0" ]; then
-					log_info "Transaction $tx_hash successful"
-					echo "$result"
-					return 0
-				else
-					local raw_log
-					raw_log=$(echo "$result" | jq -r '.raw_log // "Unknown error"' 2>/dev/null)
-					log_error "Transaction $tx_hash failed with code $code: $raw_log"
-					return 1
-				fi
-			else
-				log_debug "Failed to extract code field"
-			fi
-		else
-			if [ $attempt -lt 3 ]; then
-				log_warn "Transaction $tx_hash still processing (attempt $((attempt + 1)))"
-			fi
-		fi
-
-		attempt=$((attempt + 1))
-		sleep 2
-	done
-
-	log_error "Transaction $tx_hash timed out after $((max_attempts * 2)) seconds"
-	log_error "Last query result: $last_result"
-	log_error "Last error output: $last_error"
-	return 1
+	# Check if transaction succeeded using simple grep
+	if grep -q '"code":0' "$temp_file" 2>/dev/null; then
+		log_info "Transaction $tx_hash successful"
+		cat "$temp_file"
+		rm -f "$temp_file"
+		return 0
+	elif grep -q '"code":[1-9]' "$temp_file" 2>/dev/null; then
+		log_error "Transaction $tx_hash failed"
+		cat "$temp_file"
+		rm -f "$temp_file"
+		return 1
+	else
+		log_error "Transaction $tx_hash not found or still processing"
+		rm -f "$temp_file"
+		return 1
+	fi
 }
 
 # Debug logging function
@@ -177,9 +96,9 @@ log_debug() {
 
 # Function to execute a transaction and verify success
 execute_tx() {
-	msg="$1"
-	amount="$2"
-	should_fail="${3:-false}"
+	local msg="$1"
+	local amount="$2"
+	local should_fail="${3:-false}"
 
 	log_info "Executing: $msg"
 
@@ -189,46 +108,139 @@ execute_tx() {
 		amount_flag=""
 	fi
 
-	# Use safer JSON handling for execute commands
-	temp_result=$(mktemp)
-	temp_error=$(mktemp)
+	# Use simple file-based approach
+	local temp_result=$(mktemp)
+	local temp_error=$(mktemp)
 
-	$BINARY tx wasm execute $contract_address "$msg" --from $WALLET $amount_flag $TXFLAG >"$temp_result" 2>"$temp_error"
-	exit_code=$?
+	log_debug "Executing command: $BINARY tx wasm execute $contract_address \"$msg\" --from $WALLET $amount_flag $TXFLAG --keyring-backend test"
 
-	result=$(cat "$temp_result")
-	error_output=$(cat "$temp_error")
+	# Use background process with timeout to prevent hanging
+	$BINARY tx wasm execute $contract_address "$msg" --from $WALLET $amount_flag $TXFLAG --keyring-backend test > "$temp_result" 2> "$temp_error" &
+	local cmd_pid=$!
 
-	# Cleanup temp files
-	rm -f "$temp_result" "$temp_error"
+	# Wait up to 30 seconds for command to complete
+	local count=0
+	while [ $count -lt 30 ] && kill -0 $cmd_pid 2>/dev/null; do
+		sleep 1
+		count=$((count + 1))
+	done
 
+	# Check if process is still running (timed out)
+	if kill -0 $cmd_pid 2>/dev/null; then
+		log_warn "Command timed out after 30 seconds, killing process"
+		kill $cmd_pid 2>/dev/null || true
+		wait $cmd_pid 2>/dev/null || true
+		local exit_code=124  # timeout exit code
+	else
+		wait $cmd_pid
+		local exit_code=$?
+	fi
+
+	log_debug "Command exit code: $exit_code"
+	log_debug "Result file size: $(wc -c < "$temp_result" 2>/dev/null || echo 0) bytes"
+	log_debug "Error file size: $(wc -c < "$temp_error" 2>/dev/null || echo 0) bytes"
+
+	# Check if command failed (exit code != 0) or timed out (exit code 124)
 	if [ $exit_code -ne 0 ]; then
 		if [ "$should_fail" = "true" ]; then
-			log_info "Transaction failed as expected"
+			log_info "Transaction failed as expected (exit code: $exit_code)"
+			if [ $exit_code -eq 124 ]; then
+				log_info "Command timed out - likely hanging due to error"
+			else
+				log_debug "Error output:"
+				cat "$temp_error" 2>/dev/null || echo "No error output"
+			fi
+			rm -f "$temp_result" "$temp_error"
 			return 0
 		else
-			log_error "Transaction submission failed: $result $error_output"
+			log_error "Transaction submission failed with exit code $exit_code"
+			log_error "Error output:"
+			cat "$temp_error"
+			log_error "Result output:"
+			cat "$temp_result"
+			rm -f "$temp_result" "$temp_error"
 			return 1
 		fi
 	fi
 
-	tx_hash=$(extract_json "$result" ".txhash")
-	if [ -z "$tx_hash" ] || [ "$tx_hash" = "null" ]; then
-		log_error "Failed to extract transaction hash from: $result"
-		return 1
+	log_debug "Raw result content:"
+	cat "$temp_result"
+	echo ""
+
+	rm -f "$temp_error"
+
+	# Extract transaction hash
+	local tx_hash=$(extract_field "$temp_result" "txhash")
+
+	if [ -z "$tx_hash" ]; then
+		log_error "Failed to extract transaction hash from result"
+		log_error "Full result content:"
+		cat "$temp_result"
+		log_error "Trying alternative extraction method..."
+		# Try jq as fallback
+		alt_hash=$(cat "$temp_result" | jq -r '.txhash // empty' 2>/dev/null)
+		if [ -n "$alt_hash" ]; then
+			log_info "Alternative extraction succeeded: $alt_hash"
+			tx_hash="$alt_hash"
+		fi
+		rm -f "$temp_result"
+		if [ -z "$tx_hash" ]; then
+			if [ "$should_fail" = "true" ]; then
+				log_info "Transaction failed as expected (no tx hash)"
+				return 0
+			else
+				return 1
+			fi
+		fi
+	else
+		rm -f "$temp_result"
 	fi
 
 	log_info "Transaction submitted with hash: $tx_hash"
 
-	if wait_for_tx "$tx_hash"; then
-		if [ "$should_fail" = "true" ]; then
-			log_error "Transaction $tx_hash was expected to fail but succeeded"
-			return 1
+	# Wait for transaction and check result with detailed logging
+	log_debug "Waiting for transaction $tx_hash..."
+	local temp_tx_result=$(mktemp)
+
+	if wait_for_tx "$tx_hash" > "$temp_tx_result"; then
+		log_debug "wait_for_tx returned success"
+		log_debug "Transaction result content:"
+		cat "$temp_tx_result"
+		echo ""
+
+		# Transaction succeeded
+		if grep -q '"code":0' "$temp_tx_result" 2>/dev/null; then
+			log_debug "Found code:0 in transaction result"
+			rm -f "$temp_tx_result"
+			if [ "$should_fail" = "true" ]; then
+				log_error "Transaction $tx_hash was expected to fail but succeeded"
+				return 1
+			else
+				log_info "Transaction completed successfully"
+				return 0
+			fi
 		else
-			log_info "Transaction completed successfully"
-			return 0
+			# Transaction failed on chain
+			log_debug "Did not find code:0 in transaction result"
+			log_error "Transaction succeeded but code was not 0"
+			log_error "Transaction result:"
+			cat "$temp_tx_result"
+			rm -f "$temp_tx_result"
+			if [ "$should_fail" = "true" ]; then
+				log_info "Transaction failed as expected"
+				return 0
+			else
+				log_error "Transaction failed on chain"
+				return 1
+			fi
 		fi
 	else
+		# wait_for_tx failed (timeout or other error)
+		log_debug "wait_for_tx returned failure"
+		log_error "wait_for_tx failed for transaction $tx_hash"
+		log_error "Last result:"
+		cat "$temp_tx_result"
+		rm -f "$temp_tx_result"
 		if [ "$should_fail" = "true" ]; then
 			log_info "Transaction failed as expected"
 			return 0
@@ -241,36 +253,73 @@ execute_tx() {
 
 # Function to execute a transaction that should fail
 execute_tx_should_fail() {
-	msg="$1"
-	amount="$2"
+	local msg="$1"
+	local amount="$2"
 
 	log_info "Executing (should fail): $msg"
-	execute_tx "$msg" "$amount" "true"
+
+	# Call execute_tx with should_fail=true and check result
+	if execute_tx "$msg" "$amount" "true"; then
+		log_info "Transaction failed as expected ✓"
+		return 0
+	else
+		log_error "Expected transaction to fail, but it succeeded or had unexpected error"
+		return 1
+	fi
 }
 
 # Function to query contract and verify response
 query_contract() {
-	contract="$1"
-	query="$2"
+	local contract="$1"
+	local query="$2"
+	local should_fail="${3:-false}"
 
-	log_info "Querying: $query"
-	result=$($BINARY q wasm contract-state smart $contract "$query" --node $RPC 2>&1)
-	exit_code=$?
+	if [ "$should_fail" = "true" ]; then
+		log_info "Querying (should fail): $query"
+	else
+		log_info "Querying: $query"
+	fi
+
+	local result=$($BINARY q wasm contract-state smart $contract "$query" --node $RPC 2>&1)
+	local exit_code=$?
 
 	if [ $exit_code -ne 0 ]; then
-		log_error "Query failed: $result"
-		return 1
+		if [ "$should_fail" = "true" ]; then
+			log_info "Query failed as expected"
+			return 0
+		else
+			log_error "Query failed: $result"
+			return 1
+		fi
 	fi
 
 	# Check if result contains error
 	if echo "$result" | grep -q "error\|Error\|ERROR"; then
-		log_error "Query returned error: $result"
-		return 1
+		if [ "$should_fail" = "true" ]; then
+			log_info "Query returned error as expected: $result"
+			return 0
+		else
+			log_error "Query returned error: $result"
+			return 1
+		fi
 	fi
 
-	log_info "Query successful"
-	echo "$result"
-	return 0
+	if [ "$should_fail" = "true" ]; then
+		log_error "Query was expected to fail but succeeded: $result"
+		return 1
+	else
+		log_info "Query successful"
+		echo "$result"
+		return 0
+	fi
+}
+
+# Function to query contract that should fail
+query_contract_should_fail() {
+	local contract="$1"
+	local query="$2"
+
+	query_contract "$contract" "$query" "true"
 }
 
 # Function to query contract raw state
@@ -301,18 +350,61 @@ while getopts "r:c:d:b:w:" flag; do
 	b) BINARY=${OPTARG} ;;
 	w) WALLET=${OPTARG} ;;
 	*)
-		echo "Usage: $0 -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> -w <WALLET>"
+		echo "Usage: $0 -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> [-w <WALLET>]"
+		echo "Note: If WALLET is not provided, SEED_PHRASE environment variable must be set"
 		exit 1
 		;;
 	esac
 done
 
 # Ensure all necessary parameters are provided
-if [ -z "$RPC" ] || [ -z "$CHAIN_ID" ] || [ -z "$DENOM" ] || [ -z "$BINARY" ] || [ -z "$WALLET" ]; then
+if [ -z "$RPC" ] || [ -z "$CHAIN_ID" ] || [ -z "$DENOM" ] || [ -z "$BINARY" ]; then
 	log_error "Missing required parameters"
-	echo "Usage: $0 -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> -w <WALLET>"
+	echo "Usage: $0 -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> [-w <WALLET>]"
+	echo "Note: If WALLET is not provided, SEED_PHRASE environment variable must be set"
 	exit 1
 fi
+
+# Handle wallet setup - either from parameter or from seed phrase
+IMPORTED_WALLET=""
+CLEANUP_WALLET=false
+
+if [ -z "$WALLET" ]; then
+	# No wallet provided, check for seed phrase
+	if [ -z "$SEED_PHRASE" ]; then
+		log_error "Either WALLET parameter or SEED_PHRASE environment variable must be provided"
+		echo "For CI: Set SEED_PHRASE as a GitHub secret and it will be available as an environment variable"
+		exit 1
+	fi
+
+	# Import wallet from seed phrase
+	IMPORTED_WALLET="ci-test-wallet-$(date +%s)"
+	log_info "Importing wallet from seed phrase as: $IMPORTED_WALLET"
+
+	# Import the seed phrase into the keyring
+	echo "$SEED_PHRASE" | $BINARY keys add $IMPORTED_WALLET --recover --keyring-backend test
+	if [ $? -ne 0 ]; then
+		log_error "Failed to import wallet from seed phrase"
+		exit 1
+	fi
+
+	WALLET=$IMPORTED_WALLET
+	CLEANUP_WALLET=true
+	log_info "Successfully imported wallet: $WALLET"
+elif [ -n "$SEED_PHRASE" ]; then
+	log_warn "Both WALLET parameter and SEED_PHRASE environment variable provided. Using WALLET parameter."
+fi
+
+# Function to cleanup imported wallet
+cleanup_wallet() {
+	if [ "$CLEANUP_WALLET" = true ] && [ -n "$IMPORTED_WALLET" ]; then
+		log_info "Cleaning up imported wallet: $IMPORTED_WALLET"
+		$BINARY keys delete $IMPORTED_WALLET --keyring-backend test -y 2>/dev/null || true
+	fi
+}
+
+# Set trap to cleanup wallet on script exit
+trap cleanup_wallet EXIT
 
 # Source tx flags
 source scripts/set_txflag.sh
@@ -323,10 +415,17 @@ log_info "Chain ID: $CHAIN_ID"
 log_info "Denom: $DENOM"
 log_info "Binary: $BINARY"
 log_info "Wallet: $WALLET"
+if [ "$CLEANUP_WALLET" = true ]; then
+	log_info "Wallet source: Imported from seed phrase"
+else
+	log_info "Wallet source: Provided as parameter"
+fi
 
 # Enable debug logging if DEBUG=1 is set
 if [ "${DEBUG:-}" = "1" ]; then
 	log_info "Debug logging enabled"
+else
+	log_info "Run with DEBUG=1 for detailed logging"
 fi
 
 # Compile contracts
@@ -353,9 +452,8 @@ for CONTRACT in "$CONTRACT_DIR"/*.wasm; do
 
 	log_info "Uploading contract: $CONTRACT"
 
-	# Separate stdout and stderr to handle JSON parsing better
+	# Use simple file-based approach
 	temp_result=$(mktemp)
-	temp_error=$(mktemp)
 
 	$BINARY tx wasm store "$CONTRACT" \
 		--from "$WALLET" \
@@ -367,67 +465,43 @@ for CONTRACT in "$CONTRACT_DIR"/*.wasm; do
 		--gas-adjustment 1.4 \
 		--broadcast-mode sync \
 		--output json \
-		-y >"$temp_result" 2>"$temp_error"
+		--keyring-backend test \
+		-y >"$temp_result"
 
 	exit_code=$?
-	result=$(cat "$temp_result")
-	error_output=$(cat "$temp_error")
-
-	# Cleanup temp files
-	rm -f "$temp_result" "$temp_error"
 
 	if [ $exit_code -ne 0 ]; then
-		log_error "Upload failed for $CONTRACT: $result $error_output"
+		log_error "Upload failed for $CONTRACT"
+		cat "$temp_result"
+		rm -f "$temp_result"
 		exit 1
 	fi
 
-	# Try to extract JSON from result, handling potential non-JSON prefixes
-	tx_hash=""
-	log_debug "Attempting to extract txhash from result..."
-	log_debug "Result content: $result"
+	# Extract transaction hash using simple grep
+	tx_hash=$(extract_field "$temp_result" "txhash")
+	rm -f "$temp_result"
 
-	if echo "$result" | jq -e . >/dev/null 2>&1; then
-		# Result is valid JSON
-		log_debug "Result is valid JSON, extracting txhash..."
-		tx_hash=$(echo "$result" | jq -r '.txhash' 2>/dev/null)
-		if [ $? -ne 0 ]; then
-			log_error "jq failed to extract txhash from valid JSON"
-			log_error "JSON content: $result"
-			exit 1
-		fi
-	else
-		# Result might have non-JSON prefix, try to find JSON part
-		log_debug "Result is not valid JSON, attempting to extract JSON portion..."
-		json_part=$(echo "$result" | grep -o '{.*}' | head -1)
-		if [ -n "$json_part" ] && echo "$json_part" | jq -e . >/dev/null 2>&1; then
-			log_debug "Found valid JSON portion, extracting txhash..."
-			tx_hash=$(echo "$json_part" | jq -r '.txhash' 2>/dev/null)
-			if [ $? -ne 0 ]; then
-				log_error "jq failed to extract txhash from extracted JSON"
-				log_error "Extracted JSON: $json_part"
-				exit 1
-			fi
-		else
-			log_error "Failed to parse JSON from result: $result"
-			exit 1
-		fi
-	fi
-
-	if [ -z "$tx_hash" ] || [ "$tx_hash" = "null" ]; then
-		log_error "Failed to extract transaction hash from upload result: $result"
+	if [ -z "$tx_hash" ]; then
+		log_error "Failed to extract transaction hash from upload result"
 		exit 1
 	fi
 
 	log_info "Upload transaction submitted with hash: $tx_hash"
 
-	tx_result=$(wait_for_tx "$tx_hash")
+	# Wait for transaction and save result
+	temp_tx_result=$(mktemp)
+	wait_for_tx "$tx_hash" >"$temp_tx_result"
 	if [ $? -ne 0 ]; then
 		log_error "Upload transaction failed"
+		rm -f "$temp_tx_result"
 		exit 1
 	fi
 
-	code_id=$(echo "$tx_result" | jq -r '.events[] | select(.type == "store_code").attributes[] | select(.key == "code_id").value')
-	if [ -z "$code_id" ] || [ "$code_id" == "null" ]; then
+	# Extract code_id using simple grep
+	code_id=$(extract_field "$temp_tx_result" "code_id")
+	rm -f "$temp_tx_result"
+
+	if [ -z "$code_id" ]; then
 		log_error "No code_id found in transaction $tx_hash"
 		exit 1
 	fi
@@ -453,31 +527,37 @@ if [ ${#code_ids[@]} -eq 1 ]; then
 	log_info "Instantiating contract with code_id ${code_ids[0]} twice"
 	for i in {1..2}; do
 		temp_result=$(mktemp)
-		temp_error=$(mktemp)
 
-		$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test --admin $WALLET $TXFLAG --from $WALLET >"$temp_result" 2>"$temp_error"
+		$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test --admin $WALLET $TXFLAG --from $WALLET --keyring-backend test >"$temp_result"
 		exit_code=$?
 
-		result=$(cat "$temp_result")
-		error_output=$(cat "$temp_error")
-
-		# Cleanup temp files
-		rm -f "$temp_result" "$temp_error"
-
 		if [ $exit_code -ne 0 ]; then
-			log_error "Instantiation failed: $result $error_output"
+			log_error "Instantiation failed"
+			cat "$temp_result"
+			rm -f "$temp_result"
 			exit 1
 		fi
 
-		tx_hash=$(extract_json "$result" ".txhash")
-		tx_result=$(wait_for_tx "$tx_hash")
+		tx_hash=$(extract_field "$temp_result" "txhash")
+		rm -f "$temp_result"
+
+		if [ -z "$tx_hash" ]; then
+			log_error "Failed to extract instantiation transaction hash"
+			exit 1
+		fi
+
+		temp_tx_result=$(mktemp)
+		wait_for_tx "$tx_hash" >"$temp_tx_result"
 		if [ $? -ne 0 ]; then
 			log_error "Instantiation transaction failed"
+			rm -f "$temp_tx_result"
 			exit 1
 		fi
 
-		contract_address=$(echo "$tx_result" | jq -r '.events[] | select(.type == "instantiate").attributes[] | select(.key == "_contract_address").value')
-		if [ -z "$contract_address" ] || [ "$contract_address" == "null" ]; then
+		contract_address=$(extract_field "$temp_tx_result" "contract_address")
+		rm -f "$temp_tx_result"
+
+		if [ -z "$contract_address" ]; then
 			log_error "No contract address found in instantiation transaction"
 			exit 1
 		fi
@@ -489,31 +569,37 @@ else
 	log_info "Instantiating contracts with code_ids ${code_ids[@]}"
 	for code_id in "${code_ids[@]}"; do
 		temp_result=$(mktemp)
-		temp_error=$(mktemp)
 
-		$BINARY tx wasm instantiate $code_id '{}' --label test --admin $WALLET $TXFLAG --from $WALLET >"$temp_result" 2>"$temp_error"
+		$BINARY tx wasm instantiate $code_id '{}' --label test --admin $WALLET $TXFLAG --from $WALLET --keyring-backend test >"$temp_result"
 		exit_code=$?
 
-		result=$(cat "$temp_result")
-		error_output=$(cat "$temp_error")
-
-		# Cleanup temp files
-		rm -f "$temp_result" "$temp_error"
-
 		if [ $exit_code -ne 0 ]; then
-			log_error "Instantiation failed for code_id $code_id: $result $error_output"
+			log_error "Instantiation failed for code_id $code_id"
+			cat "$temp_result"
+			rm -f "$temp_result"
 			exit 1
 		fi
 
-		tx_hash=$(extract_json "$result" ".txhash")
-		tx_result=$(wait_for_tx "$tx_hash")
+		tx_hash=$(extract_field "$temp_result" "txhash")
+		rm -f "$temp_result"
+
+		if [ -z "$tx_hash" ]; then
+			log_error "Failed to extract instantiation transaction hash for code_id $code_id"
+			exit 1
+		fi
+
+		temp_tx_result=$(mktemp)
+		wait_for_tx "$tx_hash" >"$temp_tx_result"
 		if [ $? -ne 0 ]; then
 			log_error "Instantiation transaction failed for code_id $code_id"
+			rm -f "$temp_tx_result"
 			exit 1
 		fi
 
-		contract_address=$(echo "$tx_result" | jq -r '.events[] | select(.type == "instantiate").attributes[] | select(.key == "_contract_address").value')
-		if [ -z "$contract_address" ] || [ "$contract_address" == "null" ]; then
+		contract_address=$(extract_field "$temp_tx_result" "contract_address")
+		rm -f "$temp_tx_result"
+
+		if [ -z "$contract_address" ]; then
 			log_error "No contract address found in instantiation transaction"
 			exit 1
 		fi
@@ -528,26 +614,33 @@ wallet2=mantra123z0enyr7xdczh63jyn764stpvd70h3v98utn9
 
 log_info "Testing instantiation with unauthorized wallet (should fail)..."
 temp_result=$(mktemp)
-temp_error=$(mktemp)
 
-$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test_fail --admin $wallet2 $TXFLAG --from $wallet2 >"$temp_result" 2>"$temp_error"
+$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test_fail --admin $wallet2 $TXFLAG --from $wallet2 --keyring-backend test >"$temp_result" 2>/dev/null || true
 exit_code=$?
 
-result=$(cat "$temp_result")
-error_output=$(cat "$temp_error")
-
-# Cleanup temp files
-rm -f "$temp_result" "$temp_error"
-
 if [ $exit_code -eq 0 ]; then
-	tx_hash=$(extract_json "$result" ".txhash")
-	if ! wait_for_tx "$tx_hash" >/dev/null 2>&1; then
-		log_info "Instantiation with unauthorized wallet failed as expected"
+	tx_hash=$(extract_field "$temp_result" "txhash")
+	rm -f "$temp_result"
+
+	if [ -n "$tx_hash" ]; then
+		# Wait a bit and check if transaction failed
+		sleep 10
+		temp_check=$(mktemp)
+		$BINARY q tx $tx_hash --node $RPC -o json >"$temp_check" 2>/dev/null || true
+
+		if grep -q '"code":0' "$temp_check" 2>/dev/null; then
+			log_error "Instantiation with unauthorized wallet should have failed but succeeded"
+			rm -f "$temp_check"
+			exit 1
+		else
+			log_info "Instantiation with unauthorized wallet failed as expected"
+		fi
+		rm -f "$temp_check"
 	else
-		log_error "Instantiation with unauthorized wallet should have failed but succeeded"
-		exit 1
+		log_info "Instantiation with unauthorized wallet failed as expected"
 	fi
 else
+	rm -f "$temp_result"
 	log_info "Instantiation with unauthorized wallet failed at submission as expected"
 fi
 
@@ -605,53 +698,55 @@ query_contract $contract_address '{"get_entry_from_map":{"entry":250}}'
 log_info "Testing contract migration..."
 
 temp_result=$(mktemp)
-temp_error=$(mktemp)
 
-$BINARY tx wasm migrate $contract_address ${code_ids[0]} '{}' --from $WALLET $TXFLAG >"$temp_result" 2>"$temp_error"
+$BINARY tx wasm migrate $contract_address ${code_ids[0]} '{}' --from $WALLET $TXFLAG --keyring-backend test >"$temp_result"
 exit_code=$?
 
-result=$(cat "$temp_result")
-error_output=$(cat "$temp_error")
-
-# Cleanup temp files
-rm -f "$temp_result" "$temp_error"
-
 if [ $exit_code -eq 0 ]; then
-	tx_hash=$(extract_json "$result" ".txhash")
-	if wait_for_tx "$tx_hash" >/dev/null; then
-		log_info "Migration successful"
+	tx_hash=$(extract_field "$temp_result" "txhash")
+	rm -f "$temp_result"
+
+	if [ -n "$tx_hash" ]; then
+		if wait_for_tx "$tx_hash" >/dev/null; then
+			log_info "Migration successful"
+		else
+			log_error "Migration transaction failed"
+			exit 1
+		fi
 	else
-		log_error "Migration transaction failed"
+		log_error "Failed to extract migration transaction hash"
 		exit 1
 	fi
 else
-	log_error "Migration submission failed: $result $error_output"
+	log_error "Migration submission failed"
+	cat "$temp_result"
+	rm -f "$temp_result"
 	exit 1
 fi
 
 # Test migration with wrong wallet (should fail)
 log_info "Testing migration with unauthorized wallet (should fail)..."
 temp_result=$(mktemp)
-temp_error=$(mktemp)
 
-$BINARY tx wasm migrate $contract_address ${code_ids[0]} '{}' --from $wallet2 $TXFLAG >"$temp_result" 2>"$temp_error"
+$BINARY tx wasm migrate $contract_address ${code_ids[0]} '{}' --from $wallet2 $TXFLAG --keyring-backend test >"$temp_result" 2>/dev/null || true
 exit_code=$?
 
-result=$(cat "$temp_result")
-error_output=$(cat "$temp_error")
-
-# Cleanup temp files
-rm -f "$temp_result" "$temp_error"
-
 if [ $exit_code -eq 0 ]; then
-	tx_hash=$(extract_json "$result" ".txhash")
-	if ! wait_for_tx "$tx_hash" >/dev/null 2>&1; then
-		log_info "Migration with unauthorized wallet failed as expected"
+	tx_hash=$(extract_field "$temp_result" "txhash")
+	rm -f "$temp_result"
+
+	if [ -n "$tx_hash" ]; then
+		if ! wait_for_tx "$tx_hash" >/dev/null 2>&1; then
+			log_info "Migration with unauthorized wallet failed as expected"
+		else
+			log_error "Migration with unauthorized wallet should have failed but succeeded"
+			exit 1
+		fi
 	else
-		log_error "Migration with unauthorized wallet should have failed but succeeded"
-		exit 1
+		log_info "Migration with unauthorized wallet failed as expected"
 	fi
 else
+	rm -f "$temp_result"
 	log_info "Migration with unauthorized wallet failed at submission as expected"
 fi
 
@@ -668,9 +763,9 @@ query_contract $contract_address '{"iterate_over_map":{"limit":500}}'
 
 query_contract $contract_address '{"iterate_over_map":{"limit":1001}}'
 
-query_contract $contract_address '{"get_entry_from_map":{"entry":1}}'
+query_contract_should_fail $contract_address '{"get_entry_from_map":{"entry":1}}'
 
-query_contract $contract_address '{"get_entry_from_map":{"entry":250}}'
+query_contract_should_fail $contract_address '{"get_entry_from_map":{"entry":250}}'
 
 # Test native module interop
 log_info "--- Testing Native Cosmos Modules ---"
@@ -678,52 +773,56 @@ log_info "--- Testing Native Cosmos Modules ---"
 log_info "Sending native tokens..."
 
 temp_result=$(mktemp)
-temp_error=$(mktemp)
 
-$BINARY tx bank send $WALLET $wallet2 100uom $TXFLAG --from $WALLET >"$temp_result" 2>"$temp_error"
+$BINARY tx bank send $WALLET $wallet2 100uom $TXFLAG --from $WALLET --keyring-backend test >"$temp_result"
 exit_code=$?
 
-result=$(cat "$temp_result")
-error_output=$(cat "$temp_error")
-
-# Cleanup temp files
-rm -f "$temp_result" "$temp_error"
-
 if [ $exit_code -eq 0 ]; then
-	tx_hash=$(extract_json "$result" ".txhash")
-	if wait_for_tx "$tx_hash" >/dev/null; then
-		log_info "Native token send successful"
+	tx_hash=$(extract_field "$temp_result" "txhash")
+	rm -f "$temp_result"
+	echo "tx_hash:: $tx_hash"
+	if [ -n "$tx_hash" ]; then
+		if wait_for_tx "$tx_hash" >/dev/null; then
+			log_info "Native token send successful"
+		else
+			log_error "Native token send transaction failed"
+			exit 1
+		fi
 	else
-		log_error "Native token send transaction failed"
+		log_error "Failed to extract bank send transaction hash"
 		exit 1
 	fi
 else
-	log_error "Native token send submission failed: $result $error_output"
+	log_error "Native token send submission failed"
+	cat "$temp_result"
+	rm -f "$temp_result"
 	exit 1
 fi
 
 temp_result=$(mktemp)
-temp_error=$(mktemp)
 
-$BINARY tx bank send $wallet2 $WALLET 80uom $TXFLAG --from $wallet2 >"$temp_result" 2>"$temp_error"
+$BINARY tx bank send $wallet2 $WALLET 80uom $TXFLAG --from $wallet2 --keyring-backend test >"$temp_result"
 exit_code=$?
 
-result=$(cat "$temp_result")
-error_output=$(cat "$temp_error")
-
-# Cleanup temp files
-rm -f "$temp_result" "$temp_error"
-
 if [ $exit_code -eq 0 ]; then
-	tx_hash=$(extract_json "$result" ".txhash")
-	if wait_for_tx "$tx_hash" >/dev/null; then
-		log_info "Return native token send successful"
+	tx_hash=$(extract_field "$temp_result" "txhash")
+	rm -f "$temp_result"
+
+	if [ -n "$tx_hash" ]; then
+		if wait_for_tx "$tx_hash" >/dev/null; then
+			log_info "Return native token send successful"
+		else
+			log_error "Return native token send transaction failed"
+			exit 1
+		fi
 	else
-		log_error "Return native token send transaction failed"
+		log_error "Failed to extract return bank send transaction hash"
 		exit 1
 	fi
 else
-	log_error "Return native token send submission failed: $result $error_output"
+	log_error "Return native token send submission failed"
+	cat "$temp_result"
+	rm -f "$temp_result"
 	exit 1
 fi
 

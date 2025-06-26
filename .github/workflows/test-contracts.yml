@@ -1,0 +1,93 @@
+name: Test Smart Contracts
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-contracts:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+        components: rustfmt, clippy
+
+    - name: Install wasm32 target
+      run: rustup target add wasm32-unknown-unknown
+
+    - name: Install cargo-make
+      run: cargo install cargo-make
+
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache cargo index
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Cache target directory
+      uses: actions/cache@v3
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+    - name: Install just
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
+    - name: Download and install binary
+      run: |
+        # Replace with your actual binary download/installation steps
+        # Example for mantrachaind:
+        # wget https://github.com/MANTRA-Finance/mantrachain/releases/download/v3.0.0/mantrachaind-3.0.0-linux-amd64.tar.gz
+        # tar -xzf mantrachaind-3.0.0-linux-amd64.tar.gz
+        # sudo mv mantrachaind /usr/local/bin/
+        # chmod +x /usr/local/bin/mantrachaind
+        echo "Add your binary installation steps here"
+
+    - name: Set up test environment
+      run: |
+        # Make scripts executable
+        chmod +x scripts/test_ci.sh
+        chmod +x scripts/set_txflag.sh
+
+    - name: Run contract tests
+      env:
+        SEED_PHRASE: ${{ secrets.SEED_PHRASE }}
+        DEBUG: 1
+      run: |
+        # Replace these values with your actual network configuration
+        RPC="https://rpc.dukong.mantrachain.io:443"
+        CHAIN_ID="mantra-dukong-1"
+        DENOM="uom"
+        BINARY="mantrachaind"
+
+        ./scripts/test_ci.sh \
+          -r "$RPC" \
+          -c "$CHAIN_ID" \
+          -d "$DENOM" \
+          -b "$BINARY"
+
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: |
+          artifacts/
+          *.log
+        retention-days: 7
