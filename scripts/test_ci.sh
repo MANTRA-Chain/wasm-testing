@@ -94,6 +94,12 @@ log_debug() {
 	fi
 }
 
+# Function to get wallet address from key name
+get_wallet_address() {
+	local key_name="$1"
+	$BINARY keys show $key_name --keyring-backend test -a 2>/dev/null
+}
+
 # Function to execute a transaction and verify success
 execute_tx() {
 	local msg="$1"
@@ -367,6 +373,7 @@ fi
 
 # Handle wallet setup - either from parameter or from seed phrase
 IMPORTED_WALLET=""
+IMPORTED_WALLET2=""
 CLEANUP_WALLET=false
 
 if [ -z "$WALLET" ]; then
@@ -377,29 +384,52 @@ if [ -z "$WALLET" ]; then
 		exit 1
 	fi
 
-	# Import wallet from seed phrase
+	# Import wallet from seed phrase (index 0)
 	IMPORTED_WALLET="ci-test-wallet-$(date +%s)"
-	log_info "Importing wallet from seed phrase as: $IMPORTED_WALLET"
+	log_info "Importing primary wallet from seed phrase as: $IMPORTED_WALLET"
 
 	# Import the seed phrase into the keyring
 	echo "$SEED_PHRASE" | $BINARY keys add $IMPORTED_WALLET --recover --keyring-backend test
 	if [ $? -ne 0 ]; then
-		log_error "Failed to import wallet from seed phrase"
+		log_error "Failed to import primary wallet from seed phrase"
+		exit 1
+	fi
+
+	# Import secondary wallet from seed phrase (index 1)
+	IMPORTED_WALLET2="ci-test-wallet2-$(date +%s)"
+	log_info "Importing secondary wallet from seed phrase as: $IMPORTED_WALLET2"
+
+	# Import the seed phrase with index 1 into the keyring
+	echo "$SEED_PHRASE" | $BINARY keys add $IMPORTED_WALLET2 --recover --keyring-backend test --account 1
+	if [ $? -ne 0 ]; then
+		log_error "Failed to import secondary wallet from seed phrase"
 		exit 1
 	fi
 
 	WALLET=$IMPORTED_WALLET
 	CLEANUP_WALLET=true
-	log_info "Successfully imported wallet: $WALLET"
+
+	# Get wallet addresses for logging
+	WALLET_ADDRESS=$(get_wallet_address $IMPORTED_WALLET)
+	WALLET2_ADDRESS=$(get_wallet_address $IMPORTED_WALLET2)
+
+	log_info "Successfully imported primary wallet: $WALLET ($WALLET_ADDRESS)"
+	log_info "Successfully imported secondary wallet: $IMPORTED_WALLET2 ($WALLET2_ADDRESS)"
 elif [ -n "$SEED_PHRASE" ]; then
 	log_warn "Both WALLET parameter and SEED_PHRASE environment variable provided. Using WALLET parameter."
 fi
 
-# Function to cleanup imported wallet
+# Function to cleanup imported wallets
 cleanup_wallet() {
-	if [ "$CLEANUP_WALLET" = true ] && [ -n "$IMPORTED_WALLET" ]; then
-		log_info "Cleaning up imported wallet: $IMPORTED_WALLET"
-		$BINARY keys delete $IMPORTED_WALLET --keyring-backend test -y 2>/dev/null || true
+	if [ "$CLEANUP_WALLET" = true ]; then
+		if [ -n "$IMPORTED_WALLET" ]; then
+			log_info "Cleaning up imported primary wallet: $IMPORTED_WALLET"
+			$BINARY keys delete $IMPORTED_WALLET --keyring-backend test -y 2>/dev/null || true
+		fi
+		if [ -n "$IMPORTED_WALLET2" ]; then
+			log_info "Cleaning up imported secondary wallet: $IMPORTED_WALLET2"
+			$BINARY keys delete $IMPORTED_WALLET2 --keyring-backend test -y 2>/dev/null || true
+		fi
 	fi
 }
 
@@ -609,8 +639,41 @@ else
 	done
 fi
 
-# Test that instantiation with wrong wallet fails
-wallet2=mantra123z0enyr7xdczh63jyn764stpvd70h3v98utn9
+# Set up wallet2 - either from imported wallet or hardcoded fallback
+if [ -n "$IMPORTED_WALLET2" ]; then
+	wallet2=$IMPORTED_WALLET2
+	wallet2_address=$(get_wallet_address $wallet2)
+	log_info "Using imported secondary wallet for unauthorized tests: $wallet2 ($wallet2_address)"
+
+	# Fund the secondary wallet from primary wallet for later tests
+	log_info "Funding secondary wallet for testing..."
+	temp_fund_result=$(mktemp)
+
+	$BINARY tx bank send $WALLET $wallet2_address 200uom $TXFLAG --from $WALLET --keyring-backend test >"$temp_fund_result"
+	fund_exit_code=$?
+
+	if [ $fund_exit_code -eq 0 ]; then
+		fund_tx_hash=$(extract_field "$temp_fund_result" "txhash")
+		rm -f "$temp_fund_result"
+
+		if [ -n "$fund_tx_hash" ]; then
+			if wait_for_tx "$fund_tx_hash" >/dev/null; then
+				log_info "Successfully funded secondary wallet"
+			else
+				log_warn "Failed to fund secondary wallet - some tests may fail"
+			fi
+		else
+			log_warn "Failed to extract funding transaction hash"
+		fi
+	else
+		log_warn "Failed to submit funding transaction for secondary wallet"
+		rm -f "$temp_fund_result"
+	fi
+else
+	wallet2=mantra127hgjjrst9mngejd4l4wprnnppwl6e223vm9g6
+	wallet2_address=$wallet2
+	log_info "Using hardcoded secondary wallet for unauthorized tests: $wallet2"
+fi
 
 log_info "Testing instantiation with unauthorized wallet (should fail)..."
 temp_result=$(mktemp)
@@ -774,7 +837,8 @@ log_info "Sending native tokens..."
 
 temp_result=$(mktemp)
 
-$BINARY tx bank send $WALLET $wallet2 100uom $TXFLAG --from $WALLET --keyring-backend test >"$temp_result"
+# Send additional tokens to wallet2 (it may already have some from funding)
+$BINARY tx bank send $WALLET $wallet2_address 100uom $TXFLAG --from $WALLET --keyring-backend test >"$temp_result"
 exit_code=$?
 
 if [ $exit_code -eq 0 ]; then
