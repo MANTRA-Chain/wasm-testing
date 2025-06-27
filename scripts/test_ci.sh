@@ -419,6 +419,15 @@ elif [ -n "$SEED_PHRASE" ]; then
 	log_warn "Both WALLET parameter and SEED_PHRASE environment variable provided. Using WALLET parameter."
 fi
 
+# Ensure WALLET_ADDRESS is always set (for cases where wallet was provided via parameter)
+if [ -z "$WALLET_ADDRESS" ]; then
+	WALLET_ADDRESS=$(get_wallet_address $WALLET)
+	if [ -z "$WALLET_ADDRESS" ]; then
+		log_error "Failed to get wallet address for $WALLET"
+		exit 1
+	fi
+fi
+
 # Function to cleanup imported wallets
 cleanup_wallet() {
 	if [ "$CLEANUP_WALLET" = true ]; then
@@ -487,7 +496,7 @@ for CONTRACT in "$CONTRACT_DIR"/*.wasm; do
 
 	$BINARY tx wasm store "$CONTRACT" \
 		--from "$WALLET" \
-		--instantiate-anyof-addresses "$WALLET" \
+		--instantiate-anyof-addresses "$WALLET_ADDRESS" \
 		--chain-id "$CHAIN_ID" \
 		--node "$RPC" \
 		--gas-prices "0.5$DENOM" \
@@ -558,7 +567,7 @@ if [ ${#code_ids[@]} -eq 1 ]; then
 	for i in {1..2}; do
 		temp_result=$(mktemp)
 
-		$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test --admin $WALLET $TXFLAG --from $WALLET --keyring-backend test >"$temp_result"
+		$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test --admin $WALLET_ADDRESS $TXFLAG --from $WALLET --keyring-backend test >"$temp_result"
 		exit_code=$?
 
 		if [ $exit_code -ne 0 ]; then
@@ -600,7 +609,7 @@ else
 	for code_id in "${code_ids[@]}"; do
 		temp_result=$(mktemp)
 
-		$BINARY tx wasm instantiate $code_id '{}' --label test --admin $WALLET $TXFLAG --from $WALLET --keyring-backend test >"$temp_result"
+		$BINARY tx wasm instantiate $code_id '{}' --label test --admin $WALLET_ADDRESS $TXFLAG --from $WALLET --keyring-backend test >"$temp_result"
 		exit_code=$?
 
 		if [ $exit_code -ne 0 ]; then
@@ -678,7 +687,7 @@ fi
 log_info "Testing instantiation with unauthorized wallet (should fail)..."
 temp_result=$(mktemp)
 
-$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test_fail --admin $wallet2 $TXFLAG --from $wallet2 --keyring-backend test >"$temp_result" 2>/dev/null || true
+$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test_fail --admin $wallet2_address $TXFLAG --from $wallet2 --keyring-backend test >"$temp_result" 2>/dev/null || true
 exit_code=$?
 
 if [ $exit_code -eq 0 ]; then
@@ -865,7 +874,7 @@ fi
 
 temp_result=$(mktemp)
 
-$BINARY tx bank send $wallet2 $WALLET 80uom $TXFLAG --from $wallet2 --keyring-backend test >"$temp_result"
+$BINARY tx bank send $wallet2 $WALLET_ADDRESS 80uom $TXFLAG --from $wallet2 --keyring-backend test >"$temp_result"
 exit_code=$?
 
 if [ $exit_code -eq 0 ]; then
