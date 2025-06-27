@@ -85,3 +85,7 @@ instantiate code_id instantiate_msg label *args:
 # Tests contracts on chain.
 test-on-chain RPC CHAIN_ID DENOM BINARY WALLET:
   @scripts/test.sh -r {{RPC}} -c {{CHAIN_ID}} -d {{DENOM}} -b {{BINARY}} -w {{WALLET}}
+
+# Tests contracts on chain with CI-grade error handling.
+test-on-chain-ci RPC CHAIN_ID DENOM BINARY WALLET:
+  @scripts/test_ci.sh -r {{RPC}} -c {{CHAIN_ID}} -d {{DENOM}} -b {{BINARY}} -w {{WALLET}}
