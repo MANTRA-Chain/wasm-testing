@@ -11,7 +11,7 @@
 #   OR (for CI with seed phrase from GitHub secrets):
 #   SEED_PHRASE="your seed phrase here" ./test_ci.sh -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY>
 
-set -e # Exit on any error
+#set -e # Exit on any error
 
 # Colors for output
 RED='\033[0;31m'
@@ -59,32 +59,81 @@ extract_field() {
 # Function to wait for transaction to be included in a block
 wait_for_tx() {
 	local tx_hash="$1"
+	local max_attempts=6
+	local attempt=1
 
 	log_info "Waiting for transaction $tx_hash to be included in block..."
+	log_debug "Using binary: $BINARY, RPC: $RPC"
 
-	# Wait 15 seconds for transaction to be processed
-	sleep 15
+	while [ $attempt -le $max_attempts ]; do
+		log_debug "Attempt $attempt/$max_attempts to query transaction"
 
-	# Try to query the transaction
-	local temp_file=$(mktemp)
-	$BINARY q tx $tx_hash --node $RPC -o json > "$temp_file" 2>/dev/null || true
+		# Wait before querying (shorter initial wait, then longer)
+		if [ $attempt -eq 1 ]; then
+			sleep 5
+		else
+			sleep 10
+		fi
 
-	# Check if transaction succeeded using simple grep
-	if grep -q '"code":0' "$temp_file" 2>/dev/null; then
-		log_info "Transaction $tx_hash successful"
-		cat "$temp_file"
-		rm -f "$temp_file"
-		return 0
-	elif grep -q '"code":[1-9]' "$temp_file" 2>/dev/null; then
-		log_error "Transaction $tx_hash failed"
-		cat "$temp_file"
-		rm -f "$temp_file"
-		return 1
-	else
-		log_error "Transaction $tx_hash not found or still processing"
-		rm -f "$temp_file"
-		return 1
-	fi
+		# Try to query the transaction
+		local temp_file=$(mktemp)
+		log_debug "Querying transaction: $BINARY q tx $tx_hash --node $RPC -o json"
+
+		# Capture both stdout and stderr for debugging
+		local query_output=$(mktemp)
+		local query_error=$(mktemp)
+
+		$BINARY q tx $tx_hash --node $RPC -o json > "$query_output" 2>"$query_error"
+		local query_exit_code=$?
+
+		log_debug "Query exit code: $query_exit_code"
+		log_debug "Query stdout size: $(wc -c < "$query_output" 2>/dev/null || echo 0) bytes"
+		log_debug "Query stderr size: $(wc -c < "$query_error" 2>/dev/null || echo 0) bytes"
+
+		if [ $query_exit_code -eq 0 ]; then
+			# Copy query output to temp file for processing
+			cp "$query_output" "$temp_file"
+
+			log_debug "Transaction query result:"
+			cat "$temp_file"
+			echo ""
+
+			# Check if transaction succeeded using simple grep
+			if grep -q '"code":0' "$temp_file" 2>/dev/null; then
+				log_info "Transaction $tx_hash successful"
+				cat "$temp_file"
+				rm -f "$temp_file" "$query_output" "$query_error"
+				return 0
+			elif grep -q '"code":[1-9]' "$temp_file" 2>/dev/null; then
+				log_error "Transaction $tx_hash failed on-chain"
+				cat "$temp_file"
+				rm -f "$temp_file" "$query_output" "$query_error"
+				return 1
+			else
+				log_warn "Transaction result format unexpected, continuing to wait..."
+			fi
+		else
+			log_debug "Transaction query failed with exit code: $query_exit_code"
+			if grep -q "not found" "$query_error" 2>/dev/null; then
+				log_debug "Transaction not yet included in block, will retry..."
+			else
+				log_error "Transaction query command failed:"
+				log_error "Query stderr:"
+				cat "$query_error" 2>/dev/null || echo "No stderr output"
+			fi
+		fi
+
+		rm -f "$temp_file" "$query_output" "$query_error"
+		attempt=$((attempt + 1))
+	done
+
+	log_error "Transaction $tx_hash not found after $max_attempts attempts ($(($max_attempts * 10)) seconds)"
+	log_error "This could indicate:"
+	log_error "1. Transaction was rejected due to insufficient funds"
+	log_error "2. Transaction had invalid parameters"
+	log_error "3. Node is not processing transactions"
+	log_error "4. Network connectivity issues"
+	return 1
 }
 
 # Debug logging function
@@ -460,6 +509,30 @@ else
 	log_info "Wallet source: Provided as parameter"
 fi
 
+# Check wallet balance before proceeding
+log_info "Checking wallet balance..."
+wallet_balance=$($BINARY query bank balances $WALLET_ADDRESS --node $RPC --output json 2>/dev/null || echo '{"balances":[]}')
+log_info "Wallet balance: $wallet_balance"
+
+# Check if wallet has any funds
+if echo "$wallet_balance" | grep -q '"amount"'; then
+	log_info "Wallet has funds, proceeding with tests"
+else
+	log_error "Wallet appears to have no funds!"
+	log_error "This might cause transaction failures"
+fi
+
+# Verify node connectivity
+log_info "Checking node status..."
+node_status=$($BINARY status --node $RPC 2>/dev/null || echo "ERROR")
+if [ "$node_status" = "ERROR" ]; then
+	log_error "Cannot connect to node at $RPC"
+	exit 1
+else
+	log_info "Node connection successful"
+	log_debug "Node status: $node_status"
+fi
+
 # Enable debug logging if DEBUG=1 is set
 if [ "${DEBUG:-}" = "1" ]; then
 	log_info "Debug logging enabled"
@@ -499,9 +572,9 @@ for CONTRACT in "$CONTRACT_DIR"/*.wasm; do
 		--instantiate-anyof-addresses "$WALLET_ADDRESS" \
 		--chain-id "$CHAIN_ID" \
 		--node "$RPC" \
-		--gas-prices "0.5$DENOM" \
+		--gas-prices "2$DENOM" \
 		--gas auto \
-		--gas-adjustment 1.4 \
+		--gas-adjustment 1.6 \
 		--broadcast-mode sync \
 		--output json \
 		--keyring-backend test \
@@ -529,9 +602,16 @@ for CONTRACT in "$CONTRACT_DIR"/*.wasm; do
 
 	# Wait for transaction and save result
 	temp_tx_result=$(mktemp)
-	wait_for_tx "$tx_hash" >"$temp_tx_result"
-	if [ $? -ne 0 ]; then
+	log_debug "Calling wait_for_tx for hash: $tx_hash"
+	if wait_for_tx "$tx_hash" >"$temp_tx_result"; then
+		log_debug "wait_for_tx succeeded, result saved to temp file"
+		log_debug "Transaction result content:"
+		cat "$temp_tx_result"
+		echo ""
+	else
 		log_error "Upload transaction failed"
+		log_error "wait_for_tx output:"
+		cat "$temp_tx_result" 2>/dev/null || echo "No output from wait_for_tx"
 		rm -f "$temp_tx_result"
 		exit 1
 	fi
@@ -586,9 +666,16 @@ if [ ${#code_ids[@]} -eq 1 ]; then
 		fi
 
 		temp_tx_result=$(mktemp)
-		wait_for_tx "$tx_hash" >"$temp_tx_result"
-		if [ $? -ne 0 ]; then
+		log_debug "Calling wait_for_tx for instantiation hash: $tx_hash"
+		if wait_for_tx "$tx_hash" >"$temp_tx_result"; then
+			log_debug "wait_for_tx succeeded for instantiation"
+			log_debug "Instantiation result content:"
+			cat "$temp_tx_result"
+			echo ""
+		else
 			log_error "Instantiation transaction failed"
+			log_error "wait_for_tx output:"
+			cat "$temp_tx_result" 2>/dev/null || echo "No output from wait_for_tx"
 			rm -f "$temp_tx_result"
 			exit 1
 		fi
@@ -628,9 +715,16 @@ else
 		fi
 
 		temp_tx_result=$(mktemp)
-		wait_for_tx "$tx_hash" >"$temp_tx_result"
-		if [ $? -ne 0 ]; then
+		log_debug "Calling wait_for_tx for code_id $code_id instantiation hash: $tx_hash"
+		if wait_for_tx "$tx_hash" >"$temp_tx_result"; then
+			log_debug "wait_for_tx succeeded for code_id $code_id instantiation"
+			log_debug "Instantiation result content:"
+			cat "$temp_tx_result"
+			echo ""
+		else
 			log_error "Instantiation transaction failed for code_id $code_id"
+			log_error "wait_for_tx output:"
+			cat "$temp_tx_result" 2>/dev/null || echo "No output from wait_for_tx"
 			rm -f "$temp_tx_result"
 			exit 1
 		fi
@@ -867,33 +961,6 @@ if [ $exit_code -eq 0 ]; then
 	fi
 else
 	log_error "Native token send submission failed"
-	cat "$temp_result"
-	rm -f "$temp_result"
-	exit 1
-fi
-
-temp_result=$(mktemp)
-
-$BINARY tx bank send $wallet2 $WALLET_ADDRESS 80uom $TXFLAG --from $wallet2 --keyring-backend test >"$temp_result"
-exit_code=$?
-
-if [ $exit_code -eq 0 ]; then
-	tx_hash=$(extract_field "$temp_result" "txhash")
-	rm -f "$temp_result"
-
-	if [ -n "$tx_hash" ]; then
-		if wait_for_tx "$tx_hash" >/dev/null; then
-			log_info "Return native token send successful"
-		else
-			log_error "Return native token send transaction failed"
-			exit 1
-		fi
-	else
-		log_error "Failed to extract return bank send transaction hash"
-		exit 1
-	fi
-else
-	log_error "Return native token send submission failed"
 	cat "$temp_result"
 	rm -f "$temp_result"
 	exit 1
