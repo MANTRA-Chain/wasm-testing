@@ -438,7 +438,7 @@ if [ -z "$WALLET" ]; then
 	log_info "Importing primary wallet from seed phrase as: $IMPORTED_WALLET"
 
 	# Import the seed phrase into the keyring
-	echo "$SEED_PHRASE" | $BINARY keys add $IMPORTED_WALLET --recover --keyring-backend test
+	echo "$SEED_PHRASE" | $BINARY keys add $IMPORTED_WALLET --recover --keyring-backend test --key-type eth_secp256k1
 	if [ $? -ne 0 ]; then
 		log_error "Failed to import primary wallet from seed phrase"
 		exit 1
@@ -449,7 +449,7 @@ if [ -z "$WALLET" ]; then
 	log_info "Importing secondary wallet from seed phrase as: $IMPORTED_WALLET2"
 
 	# Import the seed phrase with index 1 into the keyring
-	echo "$SEED_PHRASE" | $BINARY keys add $IMPORTED_WALLET2 --recover --keyring-backend test --account 1
+	echo "$SEED_PHRASE" | $BINARY keys add $IMPORTED_WALLET2 --recover --keyring-backend test --account 1 --key-type eth_secp256k1
 	if [ $? -ne 0 ]; then
 		log_error "Failed to import secondary wallet from seed phrase"
 		exit 1

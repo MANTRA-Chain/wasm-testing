@@ -87,5 +87,18 @@ test-on-chain RPC CHAIN_ID DENOM BINARY WALLET:
   @scripts/test.sh -r {{RPC}} -c {{CHAIN_ID}} -d {{DENOM}} -b {{BINARY}} -w {{WALLET}}
 
 # Tests contracts on chain with CI-grade error handling.
-test-on-chain-ci RPC CHAIN_ID DENOM BINARY WALLET:
-  @scripts/test_ci.sh -r {{RPC}} -c {{CHAIN_ID}} -d {{DENOM}} -b {{BINARY}} -w {{WALLET}}
+# using the pystarport local multiple nodes network and skip mantrachaind build in nix-shell
+test-ci:
+  @nix-shell ./integration_tests/shell.nix --arg includeMantrachaind false --run "pytest -v -s -m unmarked"
+
+# Tests contracts on chain with CI-grade error handling.
+# using the pystarport local multiple nodes network and leverage mantrachaind build in nix-shell
+test-local-chain:
+  @nix-shell ./integration_tests/shell.nix --run "pytest -v -s -m unmarked"
+
+test-on-chain-with-mantrachaind-build RPC CHAIN_ID DENOM BINARY WALLET:
+  @nix-shell ./integration_tests/shell.nix --run "export RPC={{RPC}} && export CHAIN_ID={{CHAIN_ID}} && export DENOM={{DENOM}} && export BINARY={{BINARY}} && export WALLET={{WALLET}} && pytest -v -s -m connect"
+
+test-on-chain-skip-mantrachaind-build RPC CHAIN_ID DENOM BINARY WALLET:
+  @nix-shell ./integration_tests/shell.nix --arg includeMantrachaind false --run "export RPC={{RPC}} && export CHAIN_ID={{CHAIN_ID}} && export DENOM={{DENOM}} && export BINARY={{BINARY}} && export WALLET={{WALLET}} && pytest -v -s -m connect"
+
