@@ -140,8 +140,6 @@ else
 	done
 fi
 
-wallet2=mantra1xnx2vcf5s9446sfat6x4ecghhw705gn9nfwxh3
-
 echo -e "\nTrying to instantiate a contract with $WALLET2 should fail..."
 $BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test_fail --admin $WALLET2 $TXFLAG --from $WALLET2
 
