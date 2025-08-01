@@ -4,7 +4,7 @@ This repo contains a simple cosmwasm contract to test multiple wasm functionalit
 
 ## How to use
 
-Run `just test-on-chain RPC CHAIN_ID DENOM BINARY WALLET` and the script `test.sh` will take care of itself.
+Run `just test-on-chain RPC CHAIN_ID DENOM BINARY WALLET WALLET2` and the script `test.sh` will take care of itself.
 
 The script will:
 - Compile a cosmwasm contract

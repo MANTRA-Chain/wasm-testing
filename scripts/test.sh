@@ -4,9 +4,9 @@
 # and then uploads the generated WASM files to your chosen network.
 
 # Usage:
-#   just test-on-chain <RPC> <CHAIN_ID> <DENOM> <BINARY> <WALLET>
+#   just test-on-chain <RPC> <CHAIN_ID> <DENOM> <BINARY> <WALLET> <WALLET2>
 #   OR
-#   ./test.sh -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> -w <WALLET>
+#   ./test.sh -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> -w <WALLET> -W <WALLET2>
 #
 
 execute_tx() {
@@ -36,23 +36,24 @@ query_contract_raw() {
 	$BINARY q wasm contract-state raw --b64 $contract "$query" --node $RPC
 }
 
-while getopts "r:c:d:b:w:" flag; do
+while getopts "r:c:d:b:w:W:" flag; do
 	case "${flag}" in
 	r) RPC=${OPTARG} ;;
 	c) CHAIN_ID=${OPTARG} ;;
 	d) DENOM=${OPTARG} ;;
 	b) BINARY=${OPTARG} ;;
 	w) WALLET=${OPTARG} ;;
+	W) WALLET2=${OPTARG} ;;
 	*)
-		echo "Usage: $0 -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> -w <WALLET>"
+		echo "Usage: $0 -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> -w <WALLET> -W <WALLET2>"
 		exit 1
 		;;
 	esac
 done
 
 # Ensure all necessary parameters are provided
-if [ -z "$RPC" ] || [ -z "$CHAIN_ID" ] || [ -z "$DENOM" ] || [ -z "$BINARY" ] || [ -z "$WALLET" ]; then
-	echo "Usage: $0 -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> -w <WALLET>"
+if [ -z "$RPC" ] || [ -z "$CHAIN_ID" ] || [ -z "$DENOM" ] || [ -z "$BINARY" ] || [ -z "$WALLET" ] || [ -z "$WALLET2" ]; then
+	echo "Usage: $0 -r <RPC> -c <CHAIN_ID> -d <DENOM> -b <BINARY> -w <WALLET> -W <WALLET2>"
 	exit 1
 fi
 
@@ -139,10 +140,8 @@ else
 	done
 fi
 
-wallet2=mantra1xnx2vcf5s9446sfat6x4ecghhw705gn9nfwxh3
-
-echo -e "\nTrying to instantiate a contract with $wallet2 should fail..."
-$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test_fail --admin $wallet2 $TXFLAG --from $wallet2
+echo -e "\nTrying to instantiate a contract with $WALLET2 should fail..."
+$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test_fail --admin $WALLET2 $TXFLAG --from $WALLET2
 
 echo -e "\nInstantiated contracts at : ${contract_addresses[@]}"
 
@@ -210,7 +209,7 @@ echo -e "\Migrating contract..."
 $BINARY tx wasm migrate $contract_address ${code_ids[@]} '{}' --from $WALLET $TXFLAG
 
 echo -e "\Migrating contract with wrong wallet, should fail..."
-$BINARY tx wasm migrate $contract_address ${code_ids[@]} '{}' --from $wallet2 $TXFLAG
+$BINARY tx wasm migrate $contract_address ${code_ids[@]} '{}' --from $WALLET2 $TXFLAG
 
 contract_address="${contract_addresses[1]}"
 
@@ -239,7 +238,7 @@ echo -e "\n--- All contract interactions complete ---"
 echo -e "\n--- Interop with Native Cosmos Modules ---"
 
 echo -e "\nSending native tokens..."
-$BINARY tx bank send $WALLET $wallet2 100uom $TXFLAG --from $WALLET
+$BINARY tx bank send $WALLET $WALLET2 100uom $TXFLAG --from $WALLET
 sleep 8
-$BINARY tx bank send $wallet2 $WALLET 80uom $TXFLAG --from $wallet2
+$BINARY tx bank send $WALLET2 $WALLET 80uom $TXFLAG --from $WALLET2
 sleep 8
