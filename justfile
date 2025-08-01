@@ -87,5 +87,5 @@ test-on-chain RPC CHAIN_ID DENOM BINARY WALLET WALLET2:
   @scripts/test.sh -r {{RPC}} -c {{CHAIN_ID}} -d {{DENOM}} -b {{BINARY}} -w {{WALLET}} -W {{WALLET2}}
 
 # Tests contracts on chain with CI-grade error handling.
-test-on-chain-ci RPC CHAIN_ID DENOM BINARY WALLET WALLET2:
+test-on-chain-ci RPC CHAIN_ID DENOM BINARY WALLET:
   @scripts/test_ci.sh -r {{RPC}} -c {{CHAIN_ID}} -d {{DENOM}} -b {{BINARY}} -w {{WALLET}}
