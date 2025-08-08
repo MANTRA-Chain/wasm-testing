@@ -83,7 +83,7 @@ for CONTRACT in "$CONTRACT_DIR"/*.wasm; do
 
 	tx_hash=$($BINARY tx wasm store "$CONTRACT" \
 		--from "$WALLET" \
-		--instantiate-anyof-addresses "$WALLET" \
+		--instantiate-anyof-addresses "$($BINARY keys show $WALLET -a)" \
 		--chain-id "$CHAIN_ID" \
 		--node "$RPC" \
 		--gas-prices "0.5$DENOM" \
@@ -125,7 +125,7 @@ fi
 if [ ${#code_ids[@]} -eq 1 ]; then
 	echo "Instantiating contract with code_id ${code_ids[0]}"
 	for i in {1..2}; do
-		res=$($BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test --admin $WALLET $TXFLAG --from $WALLET | jq -r '.txhash')
+		res=$($BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test --admin "$($BINARY keys show $WALLET -a)" $TXFLAG --from $WALLET | jq -r '.txhash')
 		sleep 10
 		contract_address=$($BINARY q tx $res --node $RPC -o json | jq -r '.events[] | select(.type == "instantiate").attributes[] | select(.key == "_contract_address").value')
 		contract_addresses+=("$contract_address")
@@ -133,7 +133,7 @@ if [ ${#code_ids[@]} -eq 1 ]; then
 else
 	echo "Instantiating contracts with code_ids ${code_ids[@]}"
 	for code_id in "${code_ids[@]}"; do
-		res=$($BINARY tx wasm instantiate $code_id '{}' --label test --admin $WALLET $TXFLAG --from $WALLET | jq -r '.txhash')
+		res=$($BINARY tx wasm instantiate $code_id '{}' --label test --admin "$($BINARY keys show $WALLET -a)" $TXFLAG --from $WALLET | jq -r '.txhash')
 		sleep 10
 		contract_address=$($BINARY q tx $res --node $RPC -o json | jq -r '.events[] | select(.type == "instantiate").attributes[] | select(.key == "_contract_address").value')
 		contract_addresses+=("$contract_address")
@@ -141,7 +141,7 @@ else
 fi
 
 echo -e "\nTrying to instantiate a contract with $WALLET2 should fail..."
-$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test_fail --admin $WALLET2 $TXFLAG --from $WALLET2
+$BINARY tx wasm instantiate ${code_ids[0]} '{}' --label test_fail --admin "$($BINARY keys show $WALLET2 -a)" $TXFLAG --from $WALLET2
 
 echo -e "\nInstantiated contracts at : ${contract_addresses[@]}"
 
@@ -238,7 +238,7 @@ echo -e "\n--- All contract interactions complete ---"
 echo -e "\n--- Interop with Native Cosmos Modules ---"
 
 echo -e "\nSending native tokens..."
-$BINARY tx bank send $WALLET $WALLET2 100uom $TXFLAG --from $WALLET
+$BINARY tx bank send "$($BINARY keys show $WALLET -a)" "$($BINARY keys show $WALLET2 -a)" 100uom $TXFLAG --from $WALLET
 sleep 8
-$BINARY tx bank send $WALLET2 $WALLET 80uom $TXFLAG --from $WALLET2
+$BINARY tx bank send "$($BINARY keys show $WALLET2 -a)" "$($BINARY keys show $WALLET -a)" 80uom $TXFLAG --from $WALLET2
 sleep 8
